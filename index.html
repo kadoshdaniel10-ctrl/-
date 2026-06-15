@@ -13,6 +13,8 @@
             --sky-bottom: #2d2a27;
             --flashlight-x: 50%;
             --flashlight-y: 50%;
+            --roof-color: #9c9991;
+            --roof-shadow: #5c5952;
         }
         body { 
             background-color: #0d0d0c; 
@@ -69,6 +71,11 @@
             mix-blend-mode: screen;
         }
 
+        /* Scene 3 (roof) has a different flashlight tint */
+        .scene.night-mode.roof-scene::before {
+            background: radial-gradient(circle 240px at var(--flashlight-x) var(--flashlight-y), rgba(180, 255, 220, 0.15) 0%, transparent 100%);
+        }
+
         .rain-container {
             position: absolute;
             inset: 0;
@@ -96,7 +103,6 @@
         .interactive { cursor: pointer; transition: transform 0.3s ease, filter 0.3s ease; }
         .interactive:hover { filter: contrast(1.15) brightness(1.2); }
 
-        /* הגדרות אפקט רטיבות */
         .wet-laundry {
             filter: brightness(0.8) saturate(0.5) contrast(2) !important;
             transform: translateY(30px) scale(0.95);
@@ -107,7 +113,7 @@
             padding: 12px 18px; border-radius: 6px; pointer-events: none;
             display: none; z-index: 100; font-size: 13px; border-right: 4px solid #ef4444;
             box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            line-height: 1.6;
+            line-height: 1.6; max-width: 280px;
         }
 
         .loader {
@@ -151,8 +157,29 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.005) translateY(0.5px); }
         }
+        @keyframes subtle-shake {
+            0%, 100% { transform: rotate(0deg) translateY(0); }
+            50% { transform: rotate(0.4deg) translateY(-1px); }
+        }
+        @keyframes cables-sway {
+            0%, 100% { transform: rotate(-2deg); }
+            50% { transform: rotate(2deg); }
+        }
+        @keyframes micro-vibration {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-0.8px) skewX(0.1deg); }
+        }
+        @keyframes drift {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(50px); }
+        }
+
         .sway-anim { animation: gentle-sway 6s ease-in-out infinite; transform-origin: top center; }
         .shiver-anim { animation: shiver 10s ease-in-out infinite; }
+        .door-anim { animation: subtle-shake 8s ease-in-out infinite; transform-origin: bottom center; }
+        .cables-anim { animation: cables-sway 6s ease-in-out infinite; transform-origin: top center; }
+        .grate-anim { animation: micro-vibration 10s ease-in-out infinite; }
+        .distant-anim { animation: subtle-shake 12s ease-in-out infinite; transform-origin: bottom center; }
 
         .drip-effect {
             position: absolute;
@@ -184,6 +211,50 @@
             background: #ef4444;
             transition: height 0.15s ease;
         }
+
+        /* Scene 3 roof */
+        .corrugated-roof {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100vw;
+            height: 38vh;
+            background: repeating-linear-gradient(
+                90deg,
+                var(--roof-color),
+                var(--roof-color) 30px,
+                var(--roof-shadow) 32px,
+                #333 35px,
+                var(--roof-color) 40px
+            );
+            box-shadow: inset 0 15px 30px rgba(0,0,0,0.5), 0 -10px 40px rgba(0,0,0,0.3);
+            z-index: 10;
+            border-top: 4px solid #444;
+            cursor: pointer;
+            transition: filter 0.3s ease;
+        }
+        .corrugated-roof:hover { filter: brightness(1.1); }
+
+        .cloud {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.25);
+            filter: blur(20px);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .roof-obj {
+            position: absolute;
+            cursor: pointer;
+            transition: filter 0.3s ease, transform 0.3s ease;
+            filter: drop-shadow(0 15px 12px rgba(0,0,0,0.4));
+            z-index: 30;
+        }
+        .roof-obj:hover {
+            transform: scale(1.04);
+            filter: drop-shadow(0 20px 25px rgba(0,0,0,0.55)) brightness(1.08);
+        }
     </style>
 </head>
 <body>
@@ -198,17 +269,18 @@
 <div id="tooltip"></div>
 
 <div class="scene" id="scene">
-    <div class="concrete-wall-bg"></div>
+    <div class="concrete-wall-bg" id="concrete-bg"></div>
 
-    <svg class="wall-crack" style="top: 8%; left: 4%; width: 220px; height: 160px;">
+    <svg class="wall-crack" id="crack1" style="top: 8%; left: 4%; width: 220px; height: 160px;">
         <path d="M12,12 L35,45 L28,85 L65,115 L105,125 M28,85 L8,100 L15,135" />
     </svg>
-    <svg class="wall-crack" style="top: 38%; right: 8%; width: 160px; height: 110px;">
+    <svg class="wall-crack" id="crack2" style="top: 38%; right: 8%; width: 160px; height: 110px;">
         <path d="M12,95 L45,75 L60,35 L95,15 M45,75 L65,90" />
     </svg>
 
     <div class="rain-container" id="rain-layer"></div>
 
+    <!-- SCENE 1 -->
     <div id="scene1-elements" class="absolute inset-0">
         <div id="scene1-bg" class="absolute inset-0 pointer-events-none">
             <div class="absolute bottom-0 left-[8%] w-[120px] h-[85%] bg-stone-500 shadow-2xl border-l-4 border-stone-600"></div>
@@ -220,14 +292,13 @@
                 <path d="M10,0 C20,100 5,200 45,310 L45,350" />
                 <path d="M8,0 C18,100 3,200 43,310 L43,350" stroke="#777" stroke-width="1.5" />
             </svg>
-
             <svg class="absolute" style="right: 22%; top: 0; width: 100px; height: 450px; fill: none; stroke: #444; stroke-width: 6;">
                 <path d="M10,0 L10,120 Q10,150 40,160 L60,160 Q80,165 80,190 L80,450" />
                 <path d="M8,0 L8,120 Q8,150 38,160 L58,160 Q78,165 78,190 L78,450" stroke="#888" stroke-width="2" />
             </svg>
         </div>
 
-        <svg class="interactive absolute top-[15%] right-[15%] w-[120px] h-[170px]" id="firebox" data-id="firebox" data-info="עֶמְדַּת כִּבּוּי אֵשׁ אֲדֻמָּה וַחֲלֻדָּה, שָׂרִיד לְבִטָּחוֹן שֶׁנִּשְׁכַּח. עָלֶיהָ מֻדְבָּק מִסְמָךְ וּמַדְבֵּקָה יְשָׁנָה שֶׁל מַעֲשֵׂי שְׁרַבְרָבוּת.">
+        <svg class="interactive absolute top-[15%] right-[15%] w-[120px] h-[170px]" id="firebox" data-id="firebox" data-info="עֶמְדַּת כִּבּוּי אֵשׁ אֲדֻמָּה וַחֲלֻדָּה, שָׂרִיד לְבִטָּחוֹן שֶׁנִּשְׁכַּח. עָלֶיהָ מֻדְבָּק מִסְמָךְ וּמַדְבֵּקָה יְשָׁנָה שֶׁל מַעֲשֵׂי שְׁרַבְרָבוּת.">
             <rect x="0" y="0" width="120" height="170" fill="#991b1b" stroke="#7f1d1d" stroke-width="5" rx="3"/>
             <rect x="12" y="15" width="96" height="140" fill="#7f1d1d" opacity="0.4"/>
             <rect x="25" y="100" width="70" height="25" fill="#facc15" stroke="#ca8a04" stroke-width="1" rx="1" />
@@ -237,7 +308,7 @@
             <path d="M100,70 C100,64 106,64 106,70" fill="none" stroke="#71717a" stroke-width="2" />
         </svg>
 
-        <svg class="interactive absolute bottom-[12%] left-[20%] w-[380px] h-[170px]" id="mattress" data-id="mattress" data-info="מִזְרַן קְפִיצִים יָשָׁן, בָּלוּי וּמֻכְתָּם, הַמְּסַפֵּר סִפּוּר שֶׁל מַעֲבָר וּתְנוּעָה שֶׁנֶּעֶצְרָה בָּרְחוֹב הָעָמוּם.">
+        <svg class="interactive absolute bottom-[12%] left-[20%] w-[380px] h-[170px]" id="mattress" data-id="mattress" data-info="מִזְרַן קְפִיצִים יָשָׁן, בָּלוּי וּמֻכְתָּם, הַמְּסַפֵּר סִפּוּר שֶׁל מַעֲבָר וּתְנוּעָה שֶׁנֶּעֶצְרָה בָּרְחוֹב הָעָמוּם.">
             <rect x="0" y="0" width="380" height="170" rx="10" fill="#5b2114" stroke="#2d0f0a" stroke-width="3" />
             <rect x="6" y="6" width="368" height="158" rx="6" fill="#78350f" opacity="0.8" />
             <path d="M40 0 L40 170 M100 0 L100 170 M160 0 L160 170 M220 0 L220 170 M280 0 L280 170 M340 0 L340 170" stroke="#451a03" stroke-width="2" opacity="0.6"/>
@@ -245,26 +316,27 @@
             <path d="M125 90 Q140 75 155 90" stroke="#333" stroke-width="2" />
         </svg>
 
-        <svg class="interactive absolute bottom-[8%] left-[55%] w-[90px] h-[45px]" id="trash-extra" data-id="trash-extra" data-info="פְּסֹלֶת נְיָר וְקַרְטוֹן זְרוּקִים עַל הָאֲדָמָה הַלַּחָה, שׁוֹקְעִים בְּאִטִּיּוּת בָּאֲבָק.">
+        <svg class="interactive absolute bottom-[8%] left-[55%] w-[90px] h-[45px]" id="trash-extra" data-id="trash-extra" data-info="פְּסֹלֶת נְיָר וְקַרְטוֹן זְרוּקִים עַל הָאֲדָמָה הַלַּחָה, שׁוֹקְעִים בְּאִטִּיּוּת בָּאֲבָק.">
             <path d="M5,40 L85,35 L75,5 L15,10 Q5,20 5,40 Z" fill="#a16207" opacity="0.9"/>
             <rect x="15" y="20" width="50" height="15" fill="#854d0e" opacity="0.5"/>
         </svg>
         
-        <svg class="interactive absolute bottom-[6%] left-[48%] w-[45px] h-[25px]" id="can-red" data-id="can" data-info="פַּחִית שְׁתִיָּה מְעוּכָה, שְׁאֵרִית לִזְמַן אַחֵר שֶׁחָלַף בַּמָּקוֹם.">
+        <svg class="interactive absolute bottom-[6%] left-[48%] w-[45px] h-[25px]" id="can-red" data-id="can" data-info="פַּחִית שְׁתִיָּה מְעוּכָה, שְׁאֵרִית לִזְמַן אַחֵר שֶׁחָלַף בַּמָּקוֹם.">
             <path d="M0 12 L35 4 L45 15 L10 23 Z" fill="#b91c1c" stroke="#7f1d1d" stroke-width="2" />
             <ellipse cx="10" cy="18" rx="8" ry="4" fill="#7f1d1d" />
         </svg>
 
-        <svg class="interactive absolute bottom-[5%] left-[25%] w-[25px] h-[20px]" id="cup" data-id="cup" data-info="כּוֹס פְּלַסְטִיק שְׁקוּפָה וּמְעוּכָה, מְכוּסָה בְּאֵפֶר וּבְמַיִם עֲמוּמִים.">
+        <svg class="interactive absolute bottom-[5%] left-[25%] w-[25px] h-[20px]" id="cup" data-id="cup" data-info="כּוֹס פְּלַסְטִיק שְׁקוּפָה וּמְעוּכָה, מְכוּסָה בְּאֵפֶר וּבְמַיִם עֲמוּמִים.">
             <ellipse cx="12" cy="10" rx="10" ry="4" fill="rgba(240,240,250,0.3)" stroke="rgba(200,200,200,0.6)" stroke-width="1.5" />
             <path d="M2,10 L5,18 L20,18 L22,10 Z" fill="rgba(240,240,250,0.15)" stroke="rgba(200,200,200,0.5)" stroke-width="1.2" />
         </svg>
 
-        <svg class="interactive absolute bottom-[4%] right-[25%] w-[35px] h-[25px]" id="plastic" data-id="plastic" data-info="שְׁרִידֵי שַׂקִּית פְּלַסְטִיק כְּחֻלָּה הַקְּרוּעָה וּמֻדְבֶּקֶת לַבֶּטוֹן הַלַּח.">
+        <svg class="interactive absolute bottom-[4%] right-[25%] w-[35px] h-[25px]" id="plastic" data-id="plastic" data-info="שְׁרִידֵי שַׂקִּית פְּלַסְטִיק כְּחֻלָּה הַקְּרוּעָה וּמֻדְבֶּקֶת לַבֶּטוֹן הַלַּח.">
             <path d="M2,18 Q15,2 32,12 Q20,25 15,15 Q5,24 2,18 Z" fill="#2563eb" opacity="0.6" stroke="#1d4ed8" stroke-width="1" />
         </svg>
     </div>
 
+    <!-- SCENE 2 -->
     <div id="scene2-elements" class="hidden absolute inset-0">
         <div id="scene2-bg" class="absolute inset-0 pointer-events-none transition-transform duration-200">
             <div class="absolute bottom-0 left-[10%] w-[130px] h-[85%] bg-stone-500 shadow-2xl border-r-4 border-stone-600"></div>
@@ -279,7 +351,7 @@
         </svg>
 
         <div id="laundry-rack-layer" class="absolute bottom-0 left-[5%] w-[200px] h-[350px] transition-transform duration-200 pointer-events-none">
-            <svg class="interactive pointer-events-auto" id="rack" data-id="rack" data-info="מַתְלֵה כְּבִיסָה כָּחֹל בּוֹלֵט מִפְּלַסְטִיק. מִבְנֶה מִינִימָלִיסְטִי הָעוֹמֵד כְּעֵדוּת אַרְעִית לְחַיֵּי הַיּוֹם-יוֹם בַּבִּנְיָן." width="180" height="340" viewBox="0 0 180 340">
+            <svg class="interactive pointer-events-auto" id="rack" data-id="rack" data-info="מַתְלֵה כְּבִיסָה כָּחֹל בּוֹלֵט מִפְּלַסְטִיק. מִבְנֶה מִינִימָלִיסְטִי הָעוֹמֵד כְּעֵדוּת אַרְעִית לְחַיֵּי הַיּוֹם-יוֹם בַּבִּנְיָן." width="180" height="340" viewBox="0 0 180 340">
                 <g stroke="#3b82f6" stroke-width="6" fill="none" stroke-linecap="round">
                     <line x1="30" y1="340" x2="30" y2="40" />
                     <line x1="150" y1="340" x2="150" y2="40" />
@@ -294,7 +366,7 @@
         </div>
 
         <div id="clothesline-layer" class="absolute top-[250px] left-[35%] w-[45vw] h-[200px] transition-transform duration-200 pointer-events-none">
-            <svg class="interactive pointer-events-auto sway-anim" id="clothesline" data-id="clothesline" data-info="בְּגָדִים צִבְעוֹנִיִּים וְכֵהִים תְּלוּיִים לְיִבּוּשׁ עַל חֶבֶל, סוֹפֵגִים אֶת הַלַּחוּת וְנִיחוֹחַ הַבֶּטוֹן הַיָּבֵשׁ. אָטְבֵי הַכְּבִיסָה זוֹהֲרִים בִּוְרֹד וְטוּרְקִיז." width="450" height="180" viewBox="0 0 450 180">
+            <svg class="interactive pointer-events-auto sway-anim" id="clothesline" data-id="clothesline" data-info="בְּגָדִים צִבְעוֹנִיִּים וְכֵהִים תְּלוּיִים לְיִבּוּשׁ עַל חֶבֶל, סוֹפְגִים אֶת הַלַּחוּת וְנִיחוֹחַ הַבֶּטוֹן הַיָּבֵשׁ. אָטְבֵי הַכְּבִיסָה זוֹהֲרִים בִּוְרֹד וְטוּרְקִיז." width="450" height="180" viewBox="0 0 450 180">
                 <path d="M0,15 Q225,50 450,15" fill="none" stroke="#888" stroke-width="2" />
                 <path d="M100,25 L160,30 L150,140 L135,140 L130,70 L120,70 L115,140 L100,140 Z" fill="#2d2d30" />
                 <path d="M210,36 L265,32 L280,58 L265,62 L260,45 L260,110 L212,110 Z" fill="#eab308" stroke="#ca8a04" stroke-width="1" />
@@ -308,7 +380,7 @@
         </div>
 
         <div id="umbrella-layer" class="absolute top-[230px] left-[26%] w-[120px] h-[250px] transition-transform duration-200 pointer-events-none">
-            <svg class="interactive pointer-events-auto sway-anim" id="umbrella" data-id="umbrella" data-info="Mִטְרִיָּה מְקֻפֶּלֶת תְּלוּיָה הָפוּךְ. מַמְתִּינָה לַגֶּשֶׁם שֶׁיִּשְׁטֹף אֶת הָאָבָק הָאוּרְבָּנִי הַנֶּעֱרָם." width="100" height="200" viewBox="0 0 100 200">
+            <svg class="interactive pointer-events-auto sway-anim" id="umbrella" data-id="umbrella" data-info="מִטְרִיָּה מְקֻפֶּלֶת תְּלוּיָה הָפוּךְ. מַמְתִּינָה לַגֶּשֶׁם שֶׁיִּשְׁטֹף אֶת הָאָבָק הָאוּרְבָּנִי הַנֶּעֶרָם." width="100" height="200" viewBox="0 0 100 200">
                 <line x1="50" y1="0" x2="50" y2="50" stroke="#444" stroke-width="2" />
                 <path d="M50,50 Q50,40 40,40 Q30,40 30,55" fill="none" stroke="#111" stroke-width="4.5" />
                 <line x1="50" y1="50" x2="50" y2="180" stroke="#222" stroke-width="3" />
@@ -318,7 +390,7 @@
         </div>
 
         <div id="bucket-layer" class="absolute top-[260px] right-[18%] w-[80px] h-[120px] transition-transform duration-200 pointer-events-none">
-            <svg class="interactive pointer-events-auto" id="bucket" data-id="bucket" data-info="דְּלִי צֶבַע לָבָן תָּלוּי עַל עַמּוּד. שְׁאֵרִיּוֹת שֶׁל עֲבוֹדָה שׁנִּפְסְקָה, מַטִּיל צֵל אָרֹךְ עַל הַקִּיר." width="70" height="100" viewBox="0 0 70 100">
+            <svg class="interactive pointer-events-auto" id="bucket" data-id="bucket" data-info="דְּלִי צֶבַע לָבָן תָּלוּי עַל עַמּוּד. שְׁאֵרִיּוֹת שֶׁל עֲבוֹדָה שֶׁנִּפְסְקָה, מַטִּיל צֵל אָרֹךְ עַל הַקִּיר." width="70" height="100" viewBox="0 0 70 100">
                 <path d="M10,25 Q35,-5 60,25" fill="none" stroke="#666" stroke-width="2.5" />
                 <path d="M12,25 L58,25 L52,85 L18,85 Z" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1.5" />
                 <ellipse cx="35" cy="25" rx="23" ry="5" fill="#e5e7eb" />
@@ -328,7 +400,7 @@
         </div>
 
         <div id="plywood-layer" class="absolute bottom-0 right-[4%] w-[160px] h-[330px] transition-transform duration-200 pointer-events-none" style="z-index: 15;">
-            <div class="interactive pointer-events-auto w-full h-full bg-[#5c4033] border-l border-amber-950 shadow-2xl transform rotate-3 origin-bottom-right" id="plywood" data-id="plywood" data-info="לוּחַ עֵץ (PLYWOOD) הַנִּשְׁעָן עַל הַקִּיר. סֵמֶל לִבְנִיָּה וַהֲקָמָה שֶׁנֶּעֶצְרָה בַּחֲצִי הַדֶּרֶךְ.">
+            <div class="interactive pointer-events-auto w-full h-full bg-[#5c4033] border-l border-amber-950 shadow-2xl transform rotate-3 origin-bottom-right" id="plywood" data-id="plywood" data-info="לוּחַ עֵץ (PLYWOOD) הַנִּשְׁעָן עַל הַקִּיר. סֵמֶל לִבְנִיָּה וַהֲקָמָה שֶׁנֶּעֶצְרָה בַּחֲצִי הַדֶּרֶךְ.">
                 <div class="absolute inset-0 opacity-15" style="background-image: url('https://www.transparenttextures.com/patterns/wood-pattern.png');"></div>
                 <div class="absolute top-12 left-5 text-[9px] text-[#2c1d11] font-mono tracking-[0.3em] transform -rotate-90 select-none opacity-50 font-bold leading-none">
                     PLYWOOD PLYWOOD<br>PLYWOOD PLYWOOD
@@ -337,7 +409,7 @@
         </div>
 
         <div id="cover-layer" class="absolute bottom-[10%] left-[28%] w-[140px] h-[50px] transition-transform duration-200 pointer-events-none">
-            <svg class="interactive pointer-events-auto" id="concrete-cover" data-id="concrete-cover" data-info="Mִכְסֵה בֶּטוֹן עָגֹל עַל הַקַּרְקַע. מִתַּחְתָּיו מְהַדְהֵד קוֹלָהּ הַשָּׁקֵט וְהֶעָמוּם שֶׁל הַתַּשְׁתִּית הָעִירוֹנִית." width="140" height="50" viewBox="0 0 140 50">
+            <svg class="interactive pointer-events-auto" id="concrete-cover" data-id="concrete-cover" data-info="מִכְסֵה בֶּטוֹן עָגֹל עַל הַקַּרְקַע. מִתַּחְתָּיו מְהַדְהֵד קוֹלָהּ הַשָּׁקֵט וְהֶעָמוּם שֶׁל הַתַּשְׁתִּית הָעִירוֹנִית." width="140" height="50" viewBox="0 0 140 50">
                 <ellipse cx="70" cy="25" rx="65" ry="20" fill="#78716c" stroke="#57534e" stroke-width="3" />
                 <ellipse cx="70" cy="25" rx="55" ry="14" fill="none" stroke="#57534e" stroke-width="1.5" stroke-dasharray="4 4" />
             </svg>
@@ -347,17 +419,74 @@
         <div class="absolute bottom-[35px] left-[55%] text-green-700/60 font-bold text-sm select-none pointer-events-none" style="z-index: 10;">🪻</div>
     </div>
 
+    <!-- SCENE 3: ROOF -->
+    <div id="scene3-elements" class="hidden absolute inset-0">
+        <!-- עננים -->
+        <div class="cloud" style="width: 400px; height: 150px; top: 10%; left: -50px; animation: drift 60s linear infinite;"></div>
+        <div class="cloud" style="width: 300px; height: 120px; top: 25%; right: -100px; animation: drift 80s linear infinite reverse;"></div>
+
+        <!-- דלת מכונית -->
+        <div class="roof-obj door-anim" id="door" style="left: 33%; bottom: 34%;" data-id="door" data-info="דֶּלֶת מְכוֹנִית יְתוֹמָה עַל הַגַּג. הַשִּׁמְשָׁה הַיְּרַקְרַקָּה מַבִּיטָה אֶל הָעֲנָנִים, מְחַפֶּסֶׂת דֶּרֶךְ לְמָקוֹם אַחֵר.">
+            <svg width="220" height="260" viewBox="0 0 220 260">
+                <path d="M20,250 L30,100 Q40,10 120,10 L190,120 L195,250 Z" fill="#ebebe6" stroke="#999" stroke-width="2"/>
+                <path d="M40,110 L45,100 Q52,30 115,30 L175,120 L178,135 Z" fill="rgba(45, 170, 130, 0.45)" stroke="rgba(30, 120, 90, 0.6)" stroke-width="1.5"/>
+                <rect x="70" y="210" width="30" height="8" rx="2" fill="#777" />
+                <path d="M25,180 H190" stroke="#ccc" stroke-width="2" />
+            </svg>
+        </div>
+
+        <!-- כבלים -->
+        <div class="roof-obj cables-anim" style="left: 55%; bottom: 33%;" data-id="cables" data-info="כְּבָלִים שְׁחֹרִים מְלֻפָּפִים. עורְקֵי נְחֹשֶׁת דּוּמְמִים שֶׁהוֹלִיכוּ פַּעַם זֶרֶם וְאֶנֶרְגִּיָּה, וְכָעֵת נָחִים בַּקֹּר.">
+            <svg width="180" height="100" viewBox="0 0 180 100">
+                <path d="M10,80 Q90,40 170,80" fill="none" stroke="#222" stroke-width="5"/>
+                <path d="M15,85 Q85,45 165,85" fill="none" stroke="#111" stroke-width="4"/>
+                <path d="M5,75 Q95,35 175,75" fill="none" stroke="#2d2d2d" stroke-width="3"/>
+                <path d="M60,65 C70,40 110,40 120,65" fill="none" stroke="#666" stroke-width="2"/>
+            </svg>
+        </div>
+
+        <!-- רשת מתכת -->
+        <div class="roof-obj grate-anim" style="left: 28%; bottom: 30%;" data-id="grate" data-info="רֶשֶׁת מַתֶּכֶת שְׁחוּקָה. קַוִּים מְצֻלָּבִים הַלּוֹכְדִים אֶת נְשִׁימַת הָרוּחַ שֶׁמֵּעַל הַגַּג.">
+            <svg width="240" height="70" viewBox="0 0 240 70">
+                <g stroke="#6c737a" stroke-width="2">
+                    <rect x="5" y="15" width="230" height="45" fill="none" stroke-width="3"/>
+                    <line x1="5" y1="25" x2="235" y2="25" />
+                    <line x1="5" y1="35" x2="235" y2="35" />
+                    <line x1="5" y1="45" x2="235" y2="45" />
+                    <line x1="30" y1="15" x2="30" y2="60" />
+                    <line x1="70" y1="15" x2="70" y2="60" />
+                    <line x1="110" y1="15" x2="110" y2="60" />
+                    <line x1="150" y1="15" x2="150" y2="60" />
+                    <line x1="190" y1="15" x2="190" y2="60" />
+                </g>
+            </svg>
+        </div>
+
+        <!-- שריד רכב מרוחק -->
+        <div class="roof-obj distant-anim" style="right: 5%; bottom: 35%;" data-id="windshield" data-info="שְׁאֵרִית מַרְכֵּב מְרֻחָק. צֵל מִתְכַּתֵּב עִם קְצֵה הַשָּׁמַיִם, כְּמוֹ הֵד לִנְסִיעָה שֶׁנֶּעֶצְרָה בְּמַעֲלֵה הַבִּנְיָן.">
+            <svg width="160" height="150" viewBox="0 0 160 150">
+                <path d="M10,140 L30,50 L140,50 L150,140 Z" fill="#ccc" stroke="#888" stroke-width="1.5"/>
+                <rect x="35" y="60" width="90" height="50" fill="rgba(10,15,20,0.8)" stroke="#555"/>
+            </svg>
+        </div>
+
+        <!-- גג פח גלי -->
+        <div class="corrugated-roof" id="roof" data-id="roof" data-info="גַּג הַפַּח הַגַּלִּי. מַשְׂטֵחַ תַּעֲשִׂיָּתִי הַקּוֹלֵט אֶת טִפּוֹת הַגֶּשֶׁם וּמְהַדְהֵד אֶת הַקֹּר הָעִירוֹנִי. לְחִיצָה תַּרְעִיד אֶת הַתֶּדֶר."></div>
+    </div>
+
     <div id="pipe-drip-point" style="position: absolute; left: 19.5%; top: 60%; pointer-events: none; z-index: 25;"></div>
 
-    <div class="absolute bottom-0 w-full h-32 bg-gradient-to-t from-black to-transparent opacity-60 blur-md pointer-events-none"></div>
+    <div class="absolute bottom-0 w-full h-32 bg-gradient-to-t from-black to-transparent opacity-60 blur-md pointer-events-none" id="bottom-fade"></div>
 </div>
 
 <div class="control-panel">
     <h1 class="text-lg font-semibold text-stone-100 tracking-tight">מרחב נטוש: מיצב דינמי</h1>
     
-    <div class="flex gap-2 my-3 bg-stone-900/80 p-1 rounded-lg border border-white/5">
-        <button id="btn-scene1" onclick="switchScene(1)" class="flex-1 py-1 rounded text-center text-xs font-semibold text-stone-300 transition active bg-red-600 text-white">מזרן נטוש וגלמוד</button>
-        <button id="btn-scene2" onclick="switchScene(2)" class="flex-1 py-1 rounded text-center text-xs font-semibold text-stone-300 transition">מרחב המעבר והכביסה</button>
+    <!-- בורר סצנות - עכשיו 3 כפתורים -->
+    <div class="flex gap-1.5 my-3 bg-stone-900/80 p-1 rounded-lg border border-white/5">
+        <button id="btn-scene1" onclick="switchScene(1)" class="flex-1 py-1 rounded text-center text-xs font-semibold text-stone-300 transition active bg-red-600 text-white">מזרן נטוש</button>
+        <button id="btn-scene2" onclick="switchScene(2)" class="flex-1 py-1 rounded text-center text-xs font-semibold text-stone-300 transition">מרחב כביסה</button>
+        <button id="btn-scene3" onclick="switchScene(3)" class="flex-1 py-1 rounded text-center text-xs font-semibold text-stone-300 transition">מרחב גג</button>
     </div>
 
     <div class="flex gap-2 mb-3 bg-black/45 p-1 rounded-lg border border-white/5">
@@ -366,13 +495,13 @@
         <button id="time-dawn" onclick="setTime('dawn')" class="time-btn flex-1 py-1.5 rounded text-center font-medium text-xs transition">שחר</button>
     </div>
 
-    <div class="flex items-center justify-between bg-black/30 p-2.5 rounded-lg border border-white/5">
+    <!-- גשם בכל הסצנות -->
+    <div id="rain-control" class="flex items-center justify-between bg-black/30 p-2.5 rounded-lg border border-white/5">
         <span class="text-xs text-stone-300">אווירת גשם וטפטופים</span>
         <button id="rainBtn" onclick="toggleRain()" class="toggle-btn px-4 py-1.5 rounded text-xs font-semibold bg-stone-700 hover:bg-stone-600 transition">כבוי</button>
     </div>
 
-    <div class="visualizer-container" id="visualizer">
-    </div>
+    <div class="visualizer-container" id="visualizer"></div>
 </div>
 
 <script>
@@ -380,7 +509,6 @@
     let audioCtx;
     const audioCache = {};
     const tooltip = document.getElementById('tooltip');
-    let objects = document.querySelectorAll('.interactive');
     const scene = document.getElementById('scene');
     const rainLayer = document.getElementById('rain-layer');
     const visualizer = document.getElementById('visualizer');
@@ -389,11 +517,16 @@
     let isRaining = false;
     let rainSoundNode;
     let windFilterNode;
+    let roofBiquadFilter;
+    let roofOsc;
+    let roofResonance = false;
     let rainInterval;
     let dripInterval;
 
-    const getDripPoint = () => document.getElementById('pipe-drip-point');
+    // Collect all clickable objects (scenes 1+2 use .interactive, scene 3 uses .roof-obj)
+    const allObjects = () => document.querySelectorAll('.interactive, .roof-obj, .corrugated-roof');
 
+    // Visualizer bars
     if (visualizer) {
         for (let i = 0; i < 20; i++) {
             const bar = document.createElement('div');
@@ -434,13 +567,7 @@
             contents: [{ parts: [{ text: `קרא בקול עמוק, איטי, דרמטי ופואטי, בהקפדה על הניקוד: ${text}` }] }],
             generationConfig: {
                 responseModalities: ["AUDIO"],
-                speechConfig: { 
-                    voiceConfig: { 
-                        prebuiltVoiceConfig: { 
-                            voiceName: "Charon" 
-                        } 
-                    } 
-                }
+                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Charon" } } }
             },
             model: "gemini-2.5-flash-preview-tts"
         };
@@ -454,16 +581,11 @@
                 });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const result = await response.json();
-                
                 const inlinePart = result.candidates?.[0]?.content?.parts?.[0]?.inlineData;
                 const b64Data = inlinePart?.data;
                 const mimeType = inlinePart?.mimeType || "audio/L16;rate=24000";
-                
-                if (b64Data) {
-                    return { b64Data, mimeType };
-                } else {
-                    throw new Error("Empty audio data returned from API");
-                }
+                if (b64Data) return { b64Data, mimeType };
+                throw new Error("Empty audio data");
             } catch (err) {
                 if (i === retries - 1) throw err;
                 await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
@@ -475,27 +597,24 @@
         const progress = document.getElementById('progress');
         const startBtn = document.getElementById('startBtn');
         let count = 0;
+        const objs = allObjects();
 
-        const tasks = Array.from(objects).map(async (obj) => {
+        const tasks = Array.from(objs).map(async (obj) => {
             const id = obj.dataset.id;
             const info = obj.dataset.info;
-            if (!id || !info) return;
+            if (!id || !info || audioCache[id]) return;
 
             try {
                 const result = await fetchAudio(info);
                 const binaryString = atob(result.b64Data);
                 const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
-
+                for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
                 const rateMatch = result.mimeType.match(/rate=(\d+)/);
                 const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
-
                 const wavBuffer = pcmToWav(new Int16Array(bytes.buffer), sampleRate);
                 audioCache[id] = URL.createObjectURL(new Blob([wavBuffer], { type: 'audio/wav' }));
                 count++;
-                if (progress) progress.innerText = `מכין תדרי זיכרון מנוקדים... (${count}/${objects.length})`;
+                if (progress) progress.innerText = `מכין תדרי זיכרון מנוקדים... (${count}/${objs.length})`;
             } catch (e) {
                 setupWebSpeechFallback(id, info);
             }
@@ -507,7 +626,7 @@
             startBtn.classList.remove('border-red-600/30', 'text-red-500');
             startBtn.classList.add('border-red-600', 'text-white', 'bg-red-600');
         }
-        
+
         Promise.all(tasks).then(() => {
             if (progress) progress.innerText = "המרחב מסונכרן ומוכן לחלוטין.";
         }).catch(() => {
@@ -533,23 +652,18 @@
             loader.style.opacity = '0';
             setTimeout(() => loader.remove(), 1200);
         }
-        
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
         playAmbientWind();
-        
         switchScene(1);
+        bindObjectEvents();
     }
 
     function playAmbientWind() {
         if (!audioCtx) return;
-
         const bufferSize = 4 * audioCtx.sampleRate;
         const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
         const output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            output[i] = Math.random() * 2 - 1;
-        }
+        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
 
         const whiteNoise = audioCtx.createBufferSource();
         whiteNoise.buffer = noiseBuffer;
@@ -576,37 +690,80 @@
         }, 3500);
     }
 
+    function initRoofAudio() {
+        if (!audioCtx || roofBiquadFilter) return;
+        roofBiquadFilter = audioCtx.createBiquadFilter();
+        roofBiquadFilter.type = 'lowpass';
+        roofBiquadFilter.frequency.setValueAtTime(140, audioCtx.currentTime);
+
+        roofOsc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        roofOsc.type = 'sine';
+        roofOsc.frequency.setValueAtTime(65, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+
+        roofOsc.connect(roofBiquadFilter);
+        roofBiquadFilter.connect(gain);
+        gain.connect(audioCtx.destination);
+        roofOsc.start();
+    }
+
     function switchScene(sceneNum) {
         currentScene = sceneNum;
         const s1 = document.getElementById('scene1-elements');
         const s2 = document.getElementById('scene2-elements');
+        const s3 = document.getElementById('scene3-elements');
         const b1 = document.getElementById('btn-scene1');
         const b2 = document.getElementById('btn-scene2');
+        const b3 = document.getElementById('btn-scene3');
+        const concreteBg = document.getElementById('concrete-bg');
+        const crack1 = document.getElementById('crack1');
+        const crack2 = document.getElementById('crack2');
+        const bottomFade = document.getElementById('bottom-fade');
+
+        // Hide all scenes
+        [s1, s2, s3].forEach(s => s && s.classList.add('hidden'));
+        // Reset buttons
+        [b1, b2, b3].forEach(b => {
+            if (b) { b.classList.remove('bg-red-600', 'text-white', 'bg-sky-600'); b.classList.add('text-stone-300'); }
+        });
 
         if (sceneNum === 1) {
-            if (s1) s1.classList.remove('hidden');
-            if (s2) s2.classList.add('hidden');
-            if (b1) {
-                b1.classList.add('bg-red-600', 'text-white');
-                b1.classList.remove('text-stone-300');
-            }
-            if (b2) {
-                b2.classList.remove('bg-red-600', 'text-white');
-                b2.classList.add('text-stone-300');
-            }
+            s1 && s1.classList.remove('hidden');
+            b1 && b1.classList.add('bg-red-600', 'text-white');
+            b1 && b1.classList.remove('text-stone-300');
             document.documentElement.style.setProperty('--sky-bottom', '#2d2a27');
-        } else {
-            if (s1) s1.classList.add('hidden');
-            if (s2) s2.classList.remove('hidden');
-            if (b2) {
-                b2.classList.add('bg-red-600', 'text-white');
-                b2.classList.remove('text-stone-300');
-            }
-            if (b1) {
-                b1.classList.remove('bg-red-600', 'text-white');
-                b1.classList.add('text-stone-300');
-            }
+            scene.classList.remove('roof-scene');
+            if (concreteBg) concreteBg.style.display = '';
+            if (crack1) crack1.style.display = '';
+            if (crack2) crack2.style.display = '';
+            if (bottomFade) bottomFade.style.display = '';
+        } else if (sceneNum === 2) {
+            s2 && s2.classList.remove('hidden');
+            b2 && b2.classList.add('bg-red-600', 'text-white');
+            b2 && b2.classList.remove('text-stone-300');
             document.documentElement.style.setProperty('--sky-bottom', '#3e352f');
+            scene.classList.remove('roof-scene');
+            if (concreteBg) concreteBg.style.display = '';
+            if (crack1) crack1.style.display = '';
+            if (crack2) crack2.style.display = '';
+            if (bottomFade) bottomFade.style.display = '';
+        } else if (sceneNum === 3) {
+            s3 && s3.classList.remove('hidden');
+            b3 && b3.classList.add('bg-sky-600', 'text-white');
+            b3 && b3.classList.remove('text-stone-300');
+            // Roof scene: open sky background
+            document.documentElement.style.setProperty('--sky-top', '#8b9bb0');
+            document.documentElement.style.setProperty('--sky-bottom', '#d2dae5');
+            document.documentElement.style.setProperty('--dirt-ground', '#44403c');
+            scene.classList.add('roof-scene');
+            // Hide concrete elements that don't belong on a rooftop
+            if (concreteBg) concreteBg.style.display = 'none';
+            if (crack1) crack1.style.display = 'none';
+            if (crack2) crack2.style.display = 'none';
+            if (bottomFade) bottomFade.style.display = 'none';
+            // Init roof-specific audio
+            initRoofAudio();
         }
     }
 
@@ -617,26 +774,16 @@
         const umbrella = document.getElementById('umbrella');
         
         if (isRaining) {
-            if (btn) {
-                btn.classList.add('active');
-                btn.innerText = 'פעיל';
-            }
+            if (btn) { btn.classList.add('active'); btn.innerText = 'פעיל'; }
             if (rainLayer) rainLayer.classList.add('active');
             if (laundry) laundry.classList.add('wet-laundry');
             if (umbrella) umbrella.classList.add('wet-laundry');
-            
             createRaindrops();
             startRainSound();
-            startPipeDripping();
+            if (currentScene === 2) startPipeDripping();
         } else {
-            if (btn) {
-                btn.classList.remove('active');
-                btn.innerText = 'כבוי';
-            }
-            if (rainLayer) {
-                rainLayer.classList.remove('active');
-                rainLayer.innerHTML = '';
-            }
+            if (btn) { btn.classList.remove('active'); btn.innerText = 'כבוי'; }
+            if (rainLayer) { rainLayer.classList.remove('active'); rainLayer.innerHTML = ''; }
             if (laundry) laundry.classList.remove('wet-laundry');
             if (umbrella) umbrella.classList.remove('wet-laundry');
             clearInterval(rainInterval);
@@ -660,25 +807,18 @@
 
     function startRainSound() {
         if (!audioCtx) return;
-
         const bufferSize = 1 * audioCtx.sampleRate;
         const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
         const output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            output[i] = Math.random() * 2 - 1;
-        }
-
+        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
         rainSoundNode = audioCtx.createBufferSource();
         rainSoundNode.buffer = noiseBuffer;
         rainSoundNode.loop = true;
-
         const rainFilter = audioCtx.createBiquadFilter();
         rainFilter.type = 'highpass';
         rainFilter.frequency.value = 1000;
-
         const rainGain = audioCtx.createGain();
         rainGain.gain.value = 0.015;
-
         rainSoundNode.connect(rainFilter);
         rainFilter.connect(rainGain);
         rainGain.connect(audioCtx.destination);
@@ -686,14 +826,12 @@
     }
 
     function stopRainSound() {
-        if (rainSoundNode) {
-            try { rainSoundNode.stop(); } catch(e) {}
-        }
+        if (rainSoundNode) { try { rainSoundNode.stop(); } catch(e) {} }
     }
 
     function startPipeDripping() {
         dripInterval = setInterval(() => {
-            const activeDripPoint = getDripPoint();
+            const activeDripPoint = document.getElementById('pipe-drip-point');
             if (activeDripPoint && currentScene === 2) {
                 const drip = document.createElement('div');
                 drip.className = 'drip-effect';
@@ -715,51 +853,70 @@
         gain.connect(audioCtx.destination);
         osc.start();
         osc.stop(audioCtx.currentTime + duration);
-
         animateVisualizer();
     }
 
     function animateVisualizer() {
         const bars = document.querySelectorAll('.vis-bar');
-        if (bars.length > 0) {
-            bars.forEach(bar => {
-                const height = Math.random() * 22 + 2;
-                bar.style.height = `${height}px`;
-                setTimeout(() => {
-                    bar.style.height = '2px';
-                }, 300);
-            });
-        }
+        bars.forEach(bar => {
+            const height = Math.random() * 22 + 2;
+            bar.style.height = `${height}px`;
+            setTimeout(() => { bar.style.height = '2px'; }, 300);
+        });
     }
 
     function setTime(mode) {
-        document.querySelectorAll('.time-selector button, .time-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
         const activeBtn = document.getElementById(`time-${mode}`);
         if (activeBtn) activeBtn.classList.add('active');
 
         if (mode === 'sunset') {
-            if (scene) scene.classList.remove('night-mode');
-            document.documentElement.style.setProperty('--sky-top', '#1a1817');
-            document.documentElement.style.setProperty('--sky-bottom', currentScene === 1 ? '#2d2a27' : '#3e352f');
-            document.documentElement.style.setProperty('--dirt-ground', '#3d2a1c');
+            scene.classList.remove('night-mode');
+            if (currentScene === 3) {
+                document.documentElement.style.setProperty('--sky-top', '#8b9bb0');
+                document.documentElement.style.setProperty('--sky-bottom', '#ffd2af');
+                document.documentElement.style.setProperty('--roof-color', '#9c9991');
+                document.documentElement.style.setProperty('--roof-shadow', '#5c5952');
+            } else {
+                document.documentElement.style.setProperty('--sky-top', '#1a1817');
+                document.documentElement.style.setProperty('--sky-bottom', currentScene === 1 ? '#2d2a27' : '#3e352f');
+                document.documentElement.style.setProperty('--dirt-ground', '#3d2a1c');
+            }
             if (windFilterNode) windFilterNode.frequency.setTargetAtTime(140, audioCtx.currentTime, 1.2);
+            if (roofBiquadFilter) roofBiquadFilter.frequency.setTargetAtTime(140, audioCtx.currentTime, 1);
         } else if (mode === 'night') {
-            if (scene) scene.classList.add('night-mode');
-            document.documentElement.style.setProperty('--sky-top', '#030305');
-            document.documentElement.style.setProperty('--sky-bottom', '#0b0a10');
-            document.documentElement.style.setProperty('--dirt-ground', '#14110f');
+            scene.classList.add('night-mode');
+            if (currentScene === 3) {
+                document.documentElement.style.setProperty('--sky-top', '#05070c');
+                document.documentElement.style.setProperty('--sky-bottom', '#0e111a');
+                document.documentElement.style.setProperty('--roof-color', '#2d2c2e');
+                document.documentElement.style.setProperty('--roof-shadow', '#131214');
+            } else {
+                document.documentElement.style.setProperty('--sky-top', '#030305');
+                document.documentElement.style.setProperty('--sky-bottom', '#0b0a10');
+                document.documentElement.style.setProperty('--dirt-ground', '#14110f');
+            }
             if (windFilterNode) windFilterNode.frequency.setTargetAtTime(85, audioCtx.currentTime, 1.2);
+            if (roofBiquadFilter) roofBiquadFilter.frequency.setTargetAtTime(80, audioCtx.currentTime, 1);
         } else if (mode === 'dawn') {
-            if (scene) scene.classList.remove('night-mode');
-            document.documentElement.style.setProperty('--sky-top', '#718096');
-            document.documentElement.style.setProperty('--sky-bottom', '#cbd5e0');
-            document.documentElement.style.setProperty('--dirt-ground', '#2d2a27');
+            scene.classList.remove('night-mode');
+            if (currentScene === 3) {
+                document.documentElement.style.setProperty('--sky-top', '#6a788c');
+                document.documentElement.style.setProperty('--sky-bottom', '#b1bdcd');
+                document.documentElement.style.setProperty('--roof-color', '#7d7a75');
+                document.documentElement.style.setProperty('--roof-shadow', '#44423f');
+            } else {
+                document.documentElement.style.setProperty('--sky-top', '#718096');
+                document.documentElement.style.setProperty('--sky-bottom', '#cbd5e0');
+                document.documentElement.style.setProperty('--dirt-ground', '#2d2a27');
+            }
             if (windFilterNode) windFilterNode.frequency.setTargetAtTime(250, audioCtx.currentTime, 1.2);
+            if (roofBiquadFilter) roofBiquadFilter.frequency.setTargetAtTime(220, audioCtx.currentTime, 1);
         }
     }
 
     function updateFlashlight(e) {
-        if (!scene || !scene.classList.contains('night-mode')) return;
+        if (!scene.classList.contains('night-mode')) return;
         const rect = scene.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -777,6 +934,7 @@
             const x = (window.innerWidth / 2 - e.clientX) / 55;
             const y = (window.innerHeight / 2 - e.clientY) / 55;
 
+            // Scene 1 + 2 parallax
             const bg1 = document.getElementById('scene1-bg');
             const bg2 = document.getElementById('scene2-bg');
             const rack = document.getElementById('laundry-rack-layer');
@@ -792,55 +950,87 @@
             if (umb) umb.style.transform = `translate3d(${x * 1.1}px, ${y * 1.1}px, 0)`;
             if (bkt) bkt.style.transform = `translate3d(${x * 0.8}px, ${y * 0.8}px, 0)`;
             if (ply) ply.style.transform = `translate3d(${x * 1.4}px, ${y * 1.2}px, 0)`;
+
+            // Scene 3 parallax
+            if (currentScene === 3) {
+                const door = document.getElementById('door');
+                const roof = document.getElementById('roof');
+                if (door) door.style.transform = `translate3d(${x * 0.9}px, ${y * 0.4}px, 0)`;
+                if (roof) roof.style.transform = `translate3d(${x * 0.2}px, ${y * 0.1}px, 0)`;
+            }
         });
     }
 
-    objects.forEach(obj => {
-        obj.addEventListener('mouseenter', e => {
-            if (tooltip) {
-                tooltip.innerText = obj.dataset.info;
-                tooltip.style.display = 'block';
-            }
-        });
-        obj.addEventListener('mousemove', e => {
-            if (tooltip) {
-                tooltip.style.left = (e.clientX + 20) + 'px';
-                tooltip.style.top = (e.clientY + 20) + 'px';
-            }
-        });
-        obj.addEventListener('mouseleave', () => {
-            if (tooltip) tooltip.style.display = 'none';
-        });
-        
-        obj.addEventListener('click', () => {
-            obj.style.transform = 'scale(0.96) rotate(1deg)';
-            setTimeout(() => obj.style.transform = '', 200);
+    function bindObjectEvents() {
+        allObjects().forEach(obj => {
+            // Prevent double-binding
+            if (obj._bound) return;
+            obj._bound = true;
 
-            const id = obj.dataset.id;
-            
-            const freqs = { 
-                'pipe': 65, 'firebox': 320, 'mattress': 95, 'trash-extra': 190, 
-                'can': 450, 'cup': 550, 'plastic': 700, 'rack': 180, 
-                'umbrella': 240, 'bucket': 380, 'clothesline': 110, 
-                'concrete-cover': 75, 'plywood': 130 
-            };
-            playClick(freqs[id] || 200);
-
-            const cachedSound = audioCache[id];
-            if (cachedSound) {
-                if (typeof cachedSound === 'function') {
-                    cachedSound(); 
-                } else {
-                    const audio = new Audio(cachedSound);
-                    audio.volume = 1.0;
-                    audio.play().catch(e => {});
+            obj.addEventListener('mouseenter', () => {
+                if (tooltip) {
+                    tooltip.innerText = obj.dataset.info || '';
+                    tooltip.style.display = 'block';
                 }
-            }
+            });
+            obj.addEventListener('mousemove', e => {
+                if (tooltip) {
+                    tooltip.style.left = (e.clientX + 20) + 'px';
+                    tooltip.style.top = (e.clientY + 20) + 'px';
+                }
+            });
+            obj.addEventListener('mouseleave', () => {
+                if (tooltip) tooltip.style.display = 'none';
+            });
+
+            obj.addEventListener('click', () => {
+                const id = obj.dataset.id;
+
+                // Roof resonance toggle
+                if (id === 'roof') {
+                    roofResonance = !roofResonance;
+                    if (roofBiquadFilter) {
+                        roofBiquadFilter.frequency.setTargetAtTime(
+                            roofResonance ? 950 : 140, audioCtx.currentTime, 0.4
+                        );
+                    }
+                    obj.style.filter = 'brightness(1.4)';
+                    setTimeout(() => { obj.style.filter = ''; }, 300);
+                } else {
+                    obj.style.transform = 'scale(0.96) rotate(1deg)';
+                    setTimeout(() => { obj.style.transform = ''; }, 200);
+                }
+
+                const freqs = {
+                    'pipe': 65, 'firebox': 320, 'mattress': 95, 'trash-extra': 190,
+                    'can': 450, 'cup': 550, 'plastic': 700, 'rack': 180,
+                    'umbrella': 240, 'bucket': 380, 'clothesline': 110,
+                    'concrete-cover': 75, 'plywood': 130,
+                    'door': 210, 'cables': 80, 'grate': 520, 'windshield': 160, 'roof': 65
+                };
+                playClick(freqs[id] || 200);
+
+                // Roof click flash
+                if (id === 'door' || id === 'cables' || id === 'grate' || id === 'windshield' || id === 'roof') {
+                    obj.style.filter = 'brightness(2) drop-shadow(0 0 25px #0284c7)';
+                    setTimeout(() => { obj.style.filter = ''; }, 300);
+                }
+
+                const cachedSound = audioCache[id];
+                if (cachedSound) {
+                    if (typeof cachedSound === 'function') {
+                        cachedSound();
+                    } else {
+                        const audio = new Audio(cachedSound);
+                        audio.volume = 1.0;
+                        audio.play().catch(() => {});
+                    }
+                }
+            });
         });
-    });
+    }
 
     window.onload = preLoad;
 </script>
-
 </body>
 </html>
