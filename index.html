@@ -30,7 +30,6 @@
             transition: background 2s ease, filter 1.5s ease;
         }
         
-        /* אפקט קיר בטון מחוספס וסדוק */
         .concrete-wall-bg {
             position: absolute;
             inset: 0;
@@ -42,7 +41,6 @@
             z-index: 1;
         }
 
-        /* סדקים בקיר */
         .wall-crack {
             position: absolute;
             stroke: rgba(0, 0, 0, 0.4);
@@ -52,7 +50,6 @@
             z-index: 2;
         }
 
-        /* מצב פנס אפל בלילה */
         .scene.night-mode::after {
             content: '';
             position: absolute;
@@ -72,7 +69,6 @@
             mix-blend-mode: screen;
         }
 
-        /* אפקט גשם נופל */
         .rain-container {
             position: absolute;
             inset: 0;
@@ -97,9 +93,19 @@
             100% { transform: translateY(110vh); }
         }
 
-        /* אינטראקטיביות של חפצים */
         .interactive { cursor: pointer; transition: transform 0.3s ease, filter 0.3s ease; }
         .interactive:hover { filter: contrast(1.15) brightness(1.2); }
+
+        /* הגדרות כביסה רטובה */
+        .wet-laundry {
+            filter: brightness(0.8) saturate(0.5) contrast(2) !important;
+            transform: translateY(30px) scale(0.95);
+        }
+
+        umbrella layer{
+            filter: brightness(0.8) saturate(0.5) contrast(2) !important;
+            transform: translateY(30px) scale(0.95);
+        }
 
         #tooltip {
             position: fixed; background: rgba(18, 17, 16, 0.95); color: #fff;
@@ -115,7 +121,6 @@
             transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* לוח בקרה תחתון */
         .control-panel {
             position: absolute;
             bottom: 30px;
@@ -143,7 +148,6 @@
             box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
         }
 
-        /* אנימציות תנועה ברוח */
         @keyframes gentle-sway {
             0%, 100% { transform: rotate(-2deg); }
             50% { transform: rotate(2deg); }
@@ -155,7 +159,6 @@
         .sway-anim { animation: gentle-sway 6s ease-in-out infinite; transform-origin: top center; }
         .shiver-anim { animation: shiver 10s ease-in-out infinite; }
 
-        /* קולטים לטפטוף */
         .drip-effect {
             position: absolute;
             background: rgba(156, 163, 175, 0.8);
@@ -172,7 +175,6 @@
             100% { transform: translateY(400px); opacity: 0; }
         }
 
-        /* ויזואלייזר קול */
         .visualizer-container {
             display: flex;
             align-items: flex-end;
@@ -191,7 +193,6 @@
 </head>
 <body>
 
-<!-- מסך פתיחה משודרג - "דקה" -->
 <div id="loader" class="loader">
     <div class="mb-2 text-7xl font-extralight text-red-600 tracking-[0.2em] font-serif transition-transform duration-700 hover:scale-105 select-none">דקה</div>
     <div class="mb-8 text-xs text-stone-500 font-light tracking-widest font-mono">מרחב מעבר אקוסטי ודינמי</div>
@@ -202,10 +203,8 @@
 <div id="tooltip"></div>
 
 <div class="scene" id="scene">
-    <!-- טקסטורת קיר בטון -->
     <div class="concrete-wall-bg"></div>
 
-    <!-- סדקים קבועים ברקע לשיפור הריאליזם -->
     <svg class="wall-crack" style="top: 8%; left: 4%; width: 220px; height: 160px;">
         <path d="M12,12 L35,45 L28,85 L65,115 L105,125 M28,85 L8,100 L15,135" />
     </svg>
@@ -213,25 +212,20 @@
         <path d="M12,95 L45,75 L60,35 L95,15 M45,75 L65,90" />
     </svg>
 
-    <!-- מיכל הגשם הדינמי -->
     <div class="rain-container" id="rain-layer"></div>
 
-    <!-- שלב 1: מזרן ופסולת (פעיל כברירת מחדל ומפורט במיוחד) -->
     <div id="scene1-elements" class="absolute inset-0">
         <div id="scene1-bg" class="absolute inset-0 pointer-events-none">
             <div class="absolute bottom-0 left-[8%] w-[120px] h-[85%] bg-stone-500 shadow-2xl border-l-4 border-stone-600"></div>
             <div class="absolute bottom-0 left-[34%] w-[120px] h-[85%] bg-stone-500 shadow-2xl border-l-4 border-stone-600"></div>
         </div>
         
-        <!-- צינורות תשתית וחשמל מפותלים (Conduits) המגיעים מהתמונה המקורית -->
         <div id="conduit-layer" class="absolute inset-0 pointer-events-none z-10">
-            <!-- צינור גמיש דק מעל המזרן -->
             <svg class="absolute" style="left: 15%; top: 0; width: 120px; height: 350px; fill: none; stroke: #555; stroke-width: 4.5;">
                 <path d="M10,0 C20,100 5,200 45,310 L45,350" />
                 <path d="M8,0 C18,100 3,200 43,310 L43,350" stroke="#777" stroke-width="1.5" />
             </svg>
 
-            <!-- צינור תשתית דק ליד קופסת כיבוי האש -->
             <svg class="absolute" style="right: 22%; top: 0; width: 100px; height: 450px; fill: none; stroke: #444; stroke-width: 6;">
                 <path d="M10,0 L10,120 Q10,150 40,160 L60,160 Q80,165 80,190 L80,450" />
                 <path d="M8,0 L8,120 Q8,150 38,160 L58,160 Q78,165 78,190 L78,450" stroke="#888" stroke-width="2" />
@@ -244,7 +238,6 @@
             <rect x="25" y="100" width="70" height="25" fill="#facc15" stroke="#ca8a04" stroke-width="1" rx="1" />
             <text x="60" y="112" fill="#000" font-size="6.5" font-weight="bold" text-anchor="middle">האחים בן חמו</text>
             <text x="60" y="120" fill="#000" font-size="5" text-anchor="middle">אינסטלטורים</text>
-            <!-- מנעול תלוי -->
             <rect x="98" y="70" width="10" height="12" fill="#a1a1aa" stroke="#71717a" />
             <path d="M100,70 C100,64 106,64 106,70" fill="none" stroke="#71717a" stroke-width="2" />
         </svg>
@@ -257,51 +250,39 @@
             <path d="M125 90 Q140 75 155 90" stroke="#333" stroke-width="2" />
         </svg>
 
-        <!-- קרטון קרוע גדול -->
         <svg class="interactive absolute bottom-[8%] left-[55%] w-[90px] h-[45px]" id="trash-extra" data-id="trash-extra" data-info="פְּסֹלֶת נְיָר וְקַרְטוֹן זְרוּקִים עַל הָאֲדָמָה הַלַּחָה, שׁוֹקְעִים בְּאִטִּיּוּת בָּאֲבָק.">
             <path d="M5,40 L85,35 L75,5 L15,10 Q5,20 5,40 Z" fill="#a16207" opacity="0.9"/>
             <rect x="15" y="20" width="50" height="15" fill="#854d0e" opacity="0.5"/>
         </svg>
         
-        <!-- פחית מעוכה -->
         <svg class="interactive absolute bottom-[6%] left-[48%] w-[45px] h-[25px]" id="can-red" data-id="can" data-info="פַּחִית שְׁתִיָּה מְעוּכָה, שְׁאֵרִית לִזְמַן אַחֵר שֶׁחָלַף בַּמָּקוֹם.">
             <path d="M0 12 L35 4 L45 15 L10 23 Z" fill="#b91c1c" stroke="#7f1d1d" stroke-width="2" />
             <ellipse cx="10" cy="18" rx="8" ry="4" fill="#7f1d1d" />
         </svg>
 
-        <!-- כוס פלסטיק מעוכה -->
         <svg class="interactive absolute bottom-[5%] left-[25%] w-[25px] h-[20px]" id="cup" data-id="cup" data-info="כּוֹס פְּלַסְטִיק שְׁקוּפָה וּמְעוּכָה, מְכוּסָה בְּאֵפֶר וּבְמַיִם עֲמוּמִים.">
             <ellipse cx="12" cy="10" rx="10" ry="4" fill="rgba(240,240,250,0.3)" stroke="rgba(200,200,200,0.6)" stroke-width="1.5" />
             <path d="M2,10 L5,18 L20,18 L22,10 Z" fill="rgba(240,240,250,0.15)" stroke="rgba(200,200,200,0.5)" stroke-width="1.2" />
         </svg>
 
-        <!-- שקית פלסטיק כחולה קרועה מימין -->
         <svg class="interactive absolute bottom-[4%] right-[25%] w-[35px] h-[25px]" id="plastic" data-id="plastic" data-info="שְׁרִידֵי שַׂקִּית פְּלַסְטִיק כְּחֻלָּה הַקְּרוּעָה וּמֻדְבֶּקֶת לַבֶּטוֹן הַלַּח.">
             <path d="M2,18 Q15,2 32,12 Q20,25 15,15 Q5,24 2,18 Z" fill="#2563eb" opacity="0.6" stroke="#1d4ed8" stroke-width="1" />
         </svg>
     </div>
 
-    <!-- שלב 2: מרחב המעבר והכביסה (IMG_8445) - מוסתר כברירת מחדל, צבעוני ומלא פרטים -->
     <div id="scene2-elements" class="hidden absolute inset-0">
-        <!-- עמודי בטון מסיביים ותקרת בטון חשופה -->
         <div id="scene2-bg" class="absolute inset-0 pointer-events-none transition-transform duration-200">
-            <!-- עמוד שמאלי -->
             <div class="absolute bottom-0 left-[10%] w-[130px] h-[85%] bg-stone-500 shadow-2xl border-r-4 border-stone-600"></div>
-            <!-- עמוד מרכזי -->
             <div class="absolute bottom-0 left-[42%] w-[140px] h-[85%] bg-stone-500 shadow-2xl border-l-4 border-stone-600"></div>
-            <!-- עמוד ימני מרוחק -->
             <div class="absolute bottom-0 right-[15%] w-[110px] h-[85%] bg-stone-400 shadow-xl"></div>
-            <!-- תקרת בטון עליונה -->
             <div class="absolute top-0 left-0 w-full h-[120px] bg-stone-600 shadow-md"></div>
         </div>
 
-        <!-- רצועת מתיחה כתומה-ירוקה ריאליסטית וקשורה סביב העמודים כמו בתצלום החדש -->
         <svg class="absolute top-[210px] left-[15%] w-[32%] h-[60px]" style="z-index: 12; pointer-events: none;">
             <path d="M0,32 Q120,48 240,18" fill="none" stroke="#f97316" stroke-width="4.5" />
             <path d="M0,32 Q120,48 240,18" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-dasharray="10 6" />
         </svg>
 
-        <!-- מתקן כביסה כחול חי ואינטראקטיבי משמאל -->
         <div id="laundry-rack-layer" class="absolute bottom-0 left-[5%] w-[200px] h-[350px] transition-transform duration-200 pointer-events-none">
             <svg class="interactive pointer-events-auto" id="rack" data-id="rack" data-info="מַתְלֵה כְּבִיסָה כָּחֹל בּוֹלֵט מִפְּלַסְטִיק. מִבְנֶה מִינִימָלִיסְטִי הָעוֹמֵד כְּעֵדוּת אַרְעִית לְחַיֵּי הַיּוֹם-יוֹם בַּבִּנְיָן." width="180" height="340" viewBox="0 0 180 340">
                 <g stroke="#3b82f6" stroke-width="6" fill="none" stroke-linecap="round">
@@ -317,22 +298,12 @@
             </svg>
         </div>
 
-        <!-- חבל כביסה משודרג עם בגדים צבעוניים (חולצה צהובה, גרביים אדומים, מכנסיים) ואטבים צבעוניים -->
         <div id="clothesline-layer" class="absolute top-[250px] left-[35%] w-[45vw] h-[200px] transition-transform duration-200 pointer-events-none">
             <svg class="interactive pointer-events-auto sway-anim" id="clothesline" data-id="clothesline" data-info="בְּגָדִים צִבְעוֹנִיִּים וְכֵהִים תְּלוּיִים לְיִבּוּשׁ עַל חֶבֶל, סוֹפֵגִים אֶת הַלַּחוּת וְנִיחוֹחַ הַבֶּטוֹן הַיָּבֵשׁ. אָטְבֵי הַכְּבִיסָה זוֹהֲרִים בִּוְרֹד וְטוּרְקִיז." width="450" height="180" viewBox="0 0 450 180">
-                <!-- חבל -->
                 <path d="M0,15 Q225,50 450,15" fill="none" stroke="#888" stroke-width="2" />
-                
-                <!-- מכנסיים כהים -->
                 <path d="M100,25 L160,30 L150,140 L135,140 L130,70 L120,70 L115,140 L100,140 Z" fill="#2d2d30" />
-                
-                <!-- חולצה צהובה עזה (צבעוניות חדשה) -->
                 <path d="M210,36 L265,32 L280,58 L265,62 L260,45 L260,110 L212,110 Z" fill="#eab308" stroke="#ca8a04" stroke-width="1" />
-                
-                <!-- גרב אדומה קטנה (פרט צבעוני) -->
                 <path d="M330,30 L345,30 L343,75 L358,85 L350,92 L332,75 Z" fill="#ef4444" />
-
-                <!-- אטבי כביסה צבעוניים (ורוד, כחול, טורקיז) -->
                 <rect x="110" y="16" width="5" height="14" fill="#ec4899" rx="1"/>
                 <rect x="145" y="18" width="5" height="14" fill="#06b6d4" rx="1"/>
                 <rect x="225" y="24" width="5" height="14" fill="#a855f7" rx="1"/>
@@ -341,47 +312,35 @@
             </svg>
         </div>
 
-        <!-- מטרייה תלויה הפוך במרכז -->
         <div id="umbrella-layer" class="absolute top-[230px] left-[26%] w-[120px] h-[250px] transition-transform duration-200 pointer-events-none">
             <svg class="interactive pointer-events-auto sway-anim" id="umbrella" data-id="umbrella" data-info="Mִטְרִיָּה מְקֻפֶּלֶת תְּלוּיָה הָפוּךְ. מַמְתִּינָה לַגֶּשֶׁם שֶׁיִּשְׁטֹף אֶת הָאָבָק הָאוּרְבָּנִי הַנֶּעֱרָם." width="100" height="200" viewBox="0 0 100 200">
-                <!-- חבל תלייה -->
                 <line x1="50" y1="0" x2="50" y2="50" stroke="#444" stroke-width="2" />
-                <!-- ידית מעוקלת -->
                 <path d="M50,50 Q50,40 40,40 Q30,40 30,55" fill="none" stroke="#111" stroke-width="4.5" />
-                <!-- גוף המטרייה -->
                 <line x1="50" y1="50" x2="50" y2="180" stroke="#222" stroke-width="3" />
                 <path d="M50,65 L25,160 L50,150 L75,160 Z" fill="#6b7280" stroke="#4b5563" stroke-width="1" />
                 <path d="M50,65 L37,160 L50,150 L63,160 Z" fill="#4b5563" />
             </svg>
         </div>
 
-        <!-- דלי לבן תלוי מימין עם פסים צבעוניים -->
         <div id="bucket-layer" class="absolute top-[260px] right-[18%] w-[80px] h-[120px] transition-transform duration-200 pointer-events-none">
             <svg class="interactive pointer-events-auto" id="bucket" data-id="bucket" data-info="דְּלִי צֶבַע לָבָן תָּלוּי עַל עַמּוּד. שְׁאֵרִיּוֹת שֶׁל עֲבוֹדָה שׁנִּפְסְקָה, מַטִּיל צֵל אָרֹךְ עַל הַקִּיר." width="70" height="100" viewBox="0 0 70 100">
-                <!-- ידית מתכת -->
                 <path d="M10,25 Q35,-5 60,25" fill="none" stroke="#666" stroke-width="2.5" />
-                <!-- גוף הדלי -->
                 <path d="M12,25 L58,25 L52,85 L18,85 Z" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1.5" />
                 <ellipse cx="35" cy="25" rx="23" ry="5" fill="#e5e7eb" />
-                <!-- פסים ירוקים/אדומים דקורטיביים כמו בתמונה המקורית -->
                 <rect x="16" y="45" width="38" height="4" fill="#10b981" />
                 <rect x="17" y="52" width="36" height="4" fill="#ef4444" />
             </svg>
         </div>
 
-        <!-- לוח עץ מעוצב ואינטראקטיבי מימין (PLYWOOD) המוטה לעבר הקיר בהשראת התצלום -->
         <div id="plywood-layer" class="absolute bottom-0 right-[4%] w-[160px] h-[330px] transition-transform duration-200 pointer-events-none" style="z-index: 15;">
             <div class="interactive pointer-events-auto w-full h-full bg-[#5c4033] border-l border-amber-950 shadow-2xl transform rotate-3 origin-bottom-right" id="plywood" data-id="plywood" data-info="לוּחַ עֵץ (PLYWOOD) הַנִּשְׁעָן עַל הַקִּיר. סֵמֶל לִבְנִיָּה וַהֲקָמָה שֶׁנֶּעֶצְרָה בַּחֲצִי הַדֶּרֶךְ.">
-                <!-- טקסטורת קווי עץ עדינים -->
                 <div class="absolute inset-0 opacity-15" style="background-image: url('https://www.transparenttextures.com/patterns/wood-pattern.png');"></div>
-                <!-- כיתוב סטנסיל כמו בצילום -->
                 <div class="absolute top-12 left-5 text-[9px] text-[#2c1d11] font-mono tracking-[0.3em] transform -rotate-90 select-none opacity-50 font-bold leading-none">
                     PLYWOOD PLYWOOD<br>PLYWOOD PLYWOOD
                 </div>
             </div>
         </div>
 
-        <!-- מכסה בטון עגול ברקע -->
         <div id="cover-layer" class="absolute bottom-[10%] left-[28%] w-[140px] h-[50px] transition-transform duration-200 pointer-events-none">
             <svg class="interactive pointer-events-auto" id="concrete-cover" data-id="concrete-cover" data-info="Mִכְסֵה בֶּטוֹן עָגֹל עַל הַקַּרְקַע. מִתַּחְתָּיו מְהַדְהֵד קוֹלָהּ הַשָּׁקֵט וְהֶעָמוּם שֶׁל הַתַּשְׁתִּית הָעִירוֹנִית." width="140" height="50" viewBox="0 0 140 50">
                 <ellipse cx="70" cy="25" rx="65" ry="20" fill="#78716c" stroke="#57534e" stroke-width="3" />
@@ -389,43 +348,35 @@
             </svg>
         </div>
 
-        <!-- קטעי דשא ירוקים המבצבצים בין סדקי הבטון בתחתית כמו בצילום -->
         <div class="absolute bottom-[40px] left-[32%] text-green-600/80 font-bold text-lg select-none pointer-events-none" style="z-index: 10;">🌿</div>
         <div class="absolute bottom-[35px] left-[55%] text-green-700/60 font-bold text-sm select-none pointer-events-none" style="z-index: 10;">🪻</div>
     </div>
 
-    <!-- נקודת טפטוף הצינור - ממוקם בבטחה ברמה הגלובלית -->
     <div id="pipe-drip-point" style="position: absolute; left: 19.5%; top: 60%; pointer-events: none; z-index: 25;"></div>
 
     <div class="absolute bottom-0 w-full h-32 bg-gradient-to-t from-black to-transparent opacity-60 blur-md pointer-events-none"></div>
 </div>
 
-<!-- פאנל השליטה האינטראקטיבי -->
 <div class="control-panel">
     <h1 class="text-lg font-semibold text-stone-100 tracking-tight">מרחב נטוש: מיצב דינמי</h1>
     
-    <!-- בורר שלבים -->
     <div class="flex gap-2 my-3 bg-stone-900/80 p-1 rounded-lg border border-white/5">
         <button id="btn-scene1" onclick="switchScene(1)" class="flex-1 py-1 rounded text-center text-xs font-semibold text-stone-300 transition active bg-red-600 text-white">מזרן נטוש וגלמוד</button>
-        <button id="btn-scene2" onclick="switchScene(2)" class="flex-1 py-1 rounded text-center text-xs font-semibold text-stone-300 transition">חלל המעבר והכביסה</button>
+        <button id="btn-scene2" onclick="switchScene(2)" class="flex-1 py-1 rounded text-center text-xs font-semibold text-stone-300 transition">מרחב המעבר והכביסה</button>
     </div>
 
-    <!-- בורר זמנים -->
     <div class="flex gap-2 mb-3 bg-black/45 p-1 rounded-lg border border-white/5">
         <button id="time-sunset" onclick="setTime('sunset')" class="time-btn flex-1 py-1.5 rounded text-center active font-medium text-xs transition">שקיעה</button>
         <button id="time-night" onclick="setTime('night')" class="time-btn flex-1 py-1.5 rounded text-center font-medium text-xs transition">לילה</button>
         <button id="time-dawn" onclick="setTime('dawn')" class="time-btn flex-1 py-1.5 rounded text-center font-medium text-xs transition">שחר</button>
     </div>
 
-    <!-- כפתור גשם אינטראקטיבי -->
     <div class="flex items-center justify-between bg-black/30 p-2.5 rounded-lg border border-white/5">
         <span class="text-xs text-stone-300">אווירת גשם וטפטופים</span>
         <button id="rainBtn" onclick="toggleRain()" class="toggle-btn px-4 py-1.5 rounded text-xs font-semibold bg-stone-700 hover:bg-stone-600 transition">כבוי</button>
     </div>
 
-    <!-- ויזואלייזר תדרי שמע מגיב -->
     <div class="visualizer-container" id="visualizer">
-        <!-- עמודי הויזואלייזר ייווצרו דינמית ב-JS -->
     </div>
 </div>
 
@@ -439,17 +390,15 @@
     const rainLayer = document.getElementById('rain-layer');
     const visualizer = document.getElementById('visualizer');
 
-    let currentScene = 1; // Default starting scene is now step 1
+    let currentScene = 1;
     let isRaining = false;
     let rainSoundNode;
     let windFilterNode;
     let rainInterval;
     let dripInterval;
 
-    // פונקציית עזר לשליפת נקודת הטפטוף בבטחה
     const getDripPoint = () => document.getElementById('pipe-drip-point');
 
-    // בניית עמודי ויזואלייזר
     if (visualizer) {
         for (let i = 0; i < 20; i++) {
             const bar = document.createElement('div');
@@ -458,7 +407,6 @@
         }
     }
 
-    // המרת PCM ל-WAV עבור ניגון בדפדפנים
     function pcmToWav(pcmData, sampleRate) {
         const buffer = new ArrayBuffer(44 + pcmData.length * 2);
         const view = new DataView(buffer);
@@ -485,7 +433,6 @@
         return buffer;
     }
 
-    // פנייה לשירות ה-TTS עם מנגנון הגנה וניסיונות חוזרים (Exponential Backoff)
     async function fetchAudio(text, retries = 5) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
         const payload = {
@@ -529,7 +476,6 @@
         }
     }
 
-    // טעינה מקבילה מראש לשיפור חווית המשתמש
     async function preLoad() {
         const progress = document.getElementById('progress');
         const startBtn = document.getElementById('startBtn');
@@ -574,11 +520,10 @@
         });
     }
 
-    // גיבוי מקומי לקריינות באמצעות Web Speech API במידה ומפתח ה-API חסר או לא תקין
     function setupWebSpeechFallback(id, info) {
         if (!audioCache[id]) {
             audioCache[id] = () => {
-                const cleanText = info.replace(/[\u0591-\u05C7]/g, ""); // הסרת ניקוד לשיפור ההקראה המקומית
+                const cleanText = info.replace(/[\u0591-\u05C7]/g, "");
                 const utterance = new SpeechSynthesisUtterance(cleanText);
                 utterance.lang = "he-IL";
                 utterance.rate = 0.85;
@@ -587,7 +532,6 @@
         }
     }
 
-    // אתחול מערכת השמע והמיצב
     function initApp() {
         const loader = document.getElementById('loader');
         if (loader) {
@@ -597,14 +541,11 @@
         
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
-        // יצירת סאונד רוח בבסיס המרחב
         playAmbientWind();
         
-        // הגדרת שלב ראשוני - שלב 1 כברירת מחדל
         switchScene(1);
     }
 
-    // סינתיזה מלאה של רעש רוח משתנה
     function playAmbientWind() {
         if (!audioCtx) return;
 
@@ -632,7 +573,6 @@
         windGain.connect(audioCtx.destination);
         whiteNoise.start();
 
-        // שינוי תדרים עצמאי של הרוח
         setInterval(() => {
             if (audioCtx && windFilterNode) {
                 const targetFreq = 100 + Math.random() * 90;
@@ -641,7 +581,6 @@
         }, 3500);
     }
 
-    // מעבר בין שלב 1 לשלב 2
     function switchScene(sceneNum) {
         currentScene = sceneNum;
         const s1 = document.getElementById('scene1-elements');
@@ -676,10 +615,10 @@
         }
     }
 
-    // שליטה בגשם וטפטופים (סאונד + ויזואל)
     function toggleRain() {
         isRaining = !isRaining;
         const btn = document.getElementById('rainBtn');
+        const laundry = document.getElementById('clothesline');
         
         if (isRaining) {
             if (btn) {
@@ -687,12 +626,10 @@
                 btn.innerText = 'פעיל';
             }
             if (rainLayer) rainLayer.classList.add('active');
+            if (laundry) laundry.classList.add('wet-laundry');
             
-            // יצירת טיפות גשם נופלות על המסך
             createRaindrops();
-            // הפעלת סאונד גשם סינתטי
             startRainSound();
-            // הפעלת טפטוף מים
             startPipeDripping();
         } else {
             if (btn) {
@@ -703,6 +640,7 @@
                 rainLayer.classList.remove('active');
                 rainLayer.innerHTML = '';
             }
+            if (laundry) laundry.classList.remove('wet-laundry');
             clearInterval(rainInterval);
             clearInterval(dripInterval);
             stopRainSound();
@@ -722,7 +660,6 @@
         }, 40);
     }
 
-    // יצירת סאונד גשם ריאליסטי על ידי תדירות גבוהה של פעימות רעש לבן
     function startRainSound() {
         if (!audioCtx) return;
 
@@ -756,7 +693,6 @@
         }
     }
 
-    // סימולציית טפטוף מים מצינור הניקוז (מיושם בבטחה עם הגנת Null)
     function startPipeDripping() {
         dripInterval = setInterval(() => {
             const activeDripPoint = getDripPoint();
@@ -766,7 +702,6 @@
                 activeDripPoint.appendChild(drip);
                 setTimeout(() => drip.remove(), 1500);
             }
-            // השמעת קליק קצר של טיפת מים מנומכת
             playClick(600 + Math.random() * 100, 0.02, 0.05);
         }, 1800);
     }
@@ -786,7 +721,6 @@
         animateVisualizer();
     }
 
-    // הפעלת האנימציה של הויזואלייזר בכל צליל
     function animateVisualizer() {
         const bars = document.querySelectorAll('.vis-bar');
         if (bars.length > 0) {
@@ -800,7 +734,6 @@
         }
     }
 
-    // שינוי זמני יום (שקיעה, לילה, שחר)
     function setTime(mode) {
         document.querySelectorAll('.time-selector button, .time-btn').forEach(b => b.classList.remove('active'));
         const activeBtn = document.getElementById(`time-${mode}`);
@@ -827,7 +760,6 @@
         }
     }
 
-    // אלומת פנס מגיבה במצב לילה
     function updateFlashlight(e) {
         if (!scene || !scene.classList.contains('night-mode')) return;
         const rect = scene.getBoundingClientRect();
@@ -843,7 +775,6 @@
             if (e.touches[0]) updateFlashlight(e.touches[0]);
         });
 
-        // אפקט פרלקס עמוק לתנועת עכבר (כולל מניעת קריסות באמצעות בדיקת קיום האלמנטים)
         scene.addEventListener('mousemove', (e) => {
             const x = (window.innerWidth / 2 - e.clientX) / 55;
             const y = (window.innerHeight / 2 - e.clientY) / 55;
@@ -866,7 +797,6 @@
         });
     }
 
-    // חיבור המאזינים ללחיצה על חפצים
     objects.forEach(obj => {
         obj.addEventListener('mouseenter', e => {
             if (tooltip) {
@@ -890,7 +820,6 @@
 
             const id = obj.dataset.id;
             
-            // צלילים פיזיקליים מותאמים
             const freqs = { 
                 'pipe': 65, 'firebox': 320, 'mattress': 95, 'trash-extra': 190, 
                 'can': 450, 'cup': 550, 'plastic': 700, 'rack': 180, 
@@ -899,17 +828,14 @@
             };
             playClick(freqs[id] || 200);
 
-            // השמעת הקריינות הפואטית השמורה ב-Cache או הפעלת הגיבוי המקומי
             const cachedSound = audioCache[id];
             if (cachedSound) {
                 if (typeof cachedSound === 'function') {
-                    cachedSound(); // הפעלת הגיבוי המקומי
+                    cachedSound(); 
                 } else {
                     const audio = new Audio(cachedSound);
                     audio.volume = 1.0;
-                    audio.play().catch(e => {
-                        // ניסיון קריאה חוזר שקט במקרה של שגיאת דפדפן
-                    });
+                    audio.play().catch(e => {});
                 }
             }
         });
