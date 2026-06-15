@@ -252,7 +252,7 @@
     </div>
 
     <!-- קופסת כיבוי אש מפורטת עם מדבקות אינטסטלטור ומנעול מתכת -->
-    <svg class="interactive absolute top-[15%] right-[15%] w-[120px] h-[170px] shiver-anim" id="firebox" data-id="firebox" data-info="עֶמְדַּת כִּבּוּי אֵשׁ אֲדֻמָּה וַחֲלֻדָּה, שָׂרִיד לְבִטָּחוֹן שֶׁנִּשְׁכַּח. עָלֶיהָ מֻדְבָּק מִסְמָךְ וּמַדְבֵּקָה יְשָׁנָה שֶׁל מַעֲשֵׂי שְׁרַבְרָבוּת.">
+    <svg class="interactive absolute top-[15%] right-[15%] w-[120px] h-[170px] shiver-anim" id="firebox" data-id="firebox" data-info="עֶמְדַּת כִּבּוּי אֵשׁ אֲדֻמָּה וַחֲלֻדָּה, שָׂרִיד לְבִטָּחוֹן שֶׁנִּשְׁכַּח. עָלֶיהָ מֻדְבָּק מִסְמָךְ וּמַדְבֵּקָה יְשָׁנָה שֶׁל מַעֲשֵׂי שְׁרבְרָבוּת.">
         <!-- גוף הקופסה החיצוני -->
         <rect x="0" y="0" width="120" height="170" fill="#991b1b" stroke="#7f1d1d" stroke-width="5" rx="3"/>
         <rect x="12" y="15" width="96" height="140" fill="#7f1d1d" opacity="0.4"/>
@@ -273,7 +273,7 @@
 
     <!-- מזרן משופר ועריסת קפיצים -->
     <div id="fg-structure" class="absolute inset-0 pointer-events-none transition-transform duration-200">
-        <svg class="interactive absolute bottom-[12%] left-[20%] w-[380px] h-[170px] sway-anim pointer-events-auto" id="mattress" data-id="mattress" data-info="Mִזְרַן קְפִיצִים יָשָׁן, בָּלוּי וּמֻכְתָּם, הַמְּסַפֵּר סִפּוּר שֶׁל מַעֲבָר וּתְנוּעָה שֶׁנֶּעֶצְרָה בָּרְחוֹב הָעָמוּם.">
+        <svg class="interactive absolute bottom-[12%] left-[20%] w-[380px] h-[170px] sway-anim pointer-events-auto" id="mattress" data-id="mattress" data-info="מִזְרַן קְפִיצִים יָשָׁן, בָּלוּי וּמֻכְתָּם, הַמְּסַפֵּר סִפּוּר שֶׁל מַעֲבָר וּתְנוּעָה שֶׁנֶּעֶצְרָה בָּרְחוֹב הָעָמוּם.">
             <rect x="0" y="0" width="380" height="170" rx="10" fill="#5b2114" stroke="#2d0f0a" stroke-width="3" />
             <rect x="6" y="6" width="368" height="158" rx="6" fill="#78350f" opacity="0.8" />
             <!-- דוגמת פסים בלויים -->
@@ -305,7 +305,7 @@
         </svg>
 
         <!-- שקית פלסטיק כחולה קרועה מימין -->
-        <svg class="interactive absolute bottom-[4%] right-[25%] w-[35px] h-[25px] pointer-events-auto" id="plastic" data-id="plastic" data-info="שְׁרִידֵי שַׂקִּית פְּלַסְטִיק כְּחֻלָּה הַקְּרוּעָה וּמֻדְבֶּקֶת לַבֶּטוֹן הַלַּח.">
+        <svg class="interactive absolute bottom-[4%] right-[25%] w-[35px] h-[25px] pointer-events-auto" id="plastic" data-id="plastic" data-info="שְּׁרִידֵי שַׂקִּית פְּלַסְטִיק כְּחֻלָּה הַקְּרוּעָה וּמֻדְבֶּקֶת לַבֶּטוֹן הַלַּח.">
             <path d="M2,18 Q15,2 32,12 Q20,25 15,15 Q5,24 2,18 Z" fill="#2563eb" opacity="0.6" stroke="#1d4ed8" stroke-width="1" />
         </svg>
     </div>
@@ -387,15 +387,22 @@
         return buffer;
     }
 
-    // פנייה לשירות ה-TTS עם מנגנון הגנה וניסיונות חוזרים
-    async function fetchAudio(text, retries = 5, delay = 1000) {
+    // פנייה לשירות ה-TTS עם מנגנון הגנה וניסיונות חוזרים (Exponential Backoff)
+    async function fetchAudio(text, retries = 5) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
         const payload = {
             contents: [{ parts: [{ text: `Say in a poetic, slow, cinematic tone: ${text}` }] }],
             generationConfig: {
                 responseModalities: ["AUDIO"],
-                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Charon" } } }
-            }
+                speechConfig: { 
+                    voiceConfig: { 
+                        prebuiltVoiceConfig: { 
+                            voiceName: "Charon" 
+                        } 
+                    } 
+                }
+            },
+            model: "gemini-2.5-flash-preview-tts"
         };
 
         for (let i = 0; i < retries; i++) {
@@ -407,15 +414,20 @@
                 });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const result = await response.json();
-                const audioPart = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-                const audioData = audioPart?.inlineData?.data;
                 
-                if (audioData) return audioData;
-                else throw new Error("Empty audio data returned from API");
+                const inlinePart = result.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+                const b64Data = inlinePart?.data;
+                const mimeType = inlinePart?.mimeType || "audio/L16;rate=24000";
+                
+                if (b64Data) {
+                    return { b64Data, mimeType };
+                } else {
+                    throw new Error("Empty audio data returned from API");
+                }
             } catch (err) {
                 if (i === retries - 1) throw err;
-                await new Promise(resolve => setTimeout(resolve, delay));
-                delay *= 2;
+                // Exponential Backoff: delays of 1s, 2s, 4s, 8s, 16s
+                await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
             }
         }
     }
@@ -432,23 +444,27 @@
             if (!id || !info) return;
 
             try {
-                const audioDataB64 = await fetchAudio(info);
-                const binaryString = atob(audioDataB64);
+                const result = await fetchAudio(info);
+                const binaryString = atob(result.b64Data);
                 const bytes = new Uint8Array(binaryString.length);
                 for (let i = 0; i < binaryString.length; i++) {
                     bytes[i] = binaryString.charCodeAt(i);
                 }
 
-                const wavBuffer = pcmToWav(new Int16Array(bytes.buffer), 24000);
+                // שליפת קצב הדגימה מתוך ה-MimeType שחזר
+                const rateMatch = result.mimeType.match(/rate=(\d+)/);
+                const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+
+                const wavBuffer = pcmToWav(new Int16Array(bytes.buffer), sampleRate);
                 audioCache[id] = URL.createObjectURL(new Blob([wavBuffer], { type: 'audio/wav' }));
                 count++;
                 progress.innerText = `מכין תדרי זיכרון מנוקדים... (${count}/${objects.length})`;
             } catch (e) {
-                console.error(`Failed to load audio for ${id}:`, e);
+                // דילוג שקט על כשלים כנדרש בהוראות
             }
         });
 
-        // פתיחת המיצב בצורה מהירה
+        // פתיחת המיצב בצורה מהירה למניעת חוויה תקועה
         startBtn.disabled = false;
         startBtn.innerText = "היכנס למרחב";
         startBtn.classList.remove('border-red-500/30', 'text-red-400');
@@ -456,6 +472,8 @@
         
         Promise.all(tasks).then(() => {
             progress.innerText = "המרחב מסונכרן ומוכן לחלוטין.";
+        }).catch(() => {
+            progress.innerText = "המרחב מוכן עם תצורות שמע חלקיות.";
         });
     }
 
@@ -571,7 +589,6 @@
 
         rainSoundNode.connect(rainFilter);
         rainFilter.connect(rainGain);
-        gainNode = rainGain;
         rainGain.connect(audioCtx.destination);
         rainSoundNode.start();
     }
@@ -706,7 +723,9 @@
             if (cachedSound) {
                 const audio = new Audio(cachedSound);
                 audio.volume = 1.0;
-                audio.play().catch(e => console.error("Playback error:", id, e));
+                audio.play().catch(e => {
+                    // התעלמות משגיאות הפעלה חסומות
+                });
             }
         });
     });
