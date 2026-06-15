@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מרחב המזרן הנטוש - חוויה דינמית ומפורטת</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --dirt-ground: #221f1d;
+            --wall-color: #4b4843;
+            --sky-top: #1a1817;
+            --sky-bottom: #2d2a27;
+            --flashlight-x: 50%;
+            --flashlight-y: 50%;
+        }
+        body { 
+            background-color: #0d0d0c; 
+            overflow: hidden; 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            cursor: crosshair;
+            user-select: none;
+        }
+        .scene { 
+            width: 100vw; 
+            height: 100vh; 
+            position: relative; 
+            background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 60%, var(--dirt-ground) 100%); 
+            perspective: 1200px;
+            transition: background 2s ease, filter 1.5s ease;
+        }
+        
+        /* אפקט קיר בטון מחוספס וסדוק */
+        .concrete-wall-bg {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                radial-gradient(circle at 30% 20%, rgba(255,255,255,0.03) 0%, transparent 50%),
+                url('https://www.transparenttextures.com/patterns/concrete-wall.png');
+            opacity: 0.45;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* סדקים בקיר */
+        .wall-crack {
+            position: absolute;
+            stroke: rgba(0, 0, 0, 0.4);
+            stroke-width: 1.5;
+            fill: none;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* מצב פנס אפל בלילה */
+        .scene.night-mode::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle 180px at var(--flashlight-x) var(--flashlight-y), transparent 100%, rgba(5, 5, 8, 0.97) 100%);
+            z-index: 90;
+            mix-blend-mode: multiply;
+        }
+        .scene.night-mode::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle 220px at var(--flashlight-x) var(--flashlight-y), rgba(255, 220, 160, 0.18) 0%, transparent 100%);
+            z-index: 89;
+            mix-blend-mode: screen;
+        }
+
+        /* אפקט גשם נופל */
+        .rain-container {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 40;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        .rain-container.active {
+            opacity: 1;
+        }
+        .drop {
+            position: absolute;
+            background: linear-gradient(transparent, rgba(156, 163, 175, 0.6));
+            width: 1.5px;
+            height: 50px;
+            opacity: 0.7;
+            animation: fall linear infinite;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-100px); }
+            100% { transform: translateY(110vh); }
+        }
+
+        /* אינטראקטיביות של חפצים */
+        .interactive { cursor: pointer; transition: transform 0.3s ease, filter 0.3s ease; }
+        .interactive:hover { filter: contrast(1.15) brightness(1.15); }
+
+        #tooltip {
+            position: fixed; background: rgba(18, 17, 16, 0.95); color: #fff;
+            padding: 12px 18px; border-radius: 6px; pointer-events: none;
+            display: none; z-index: 100; font-size: 13px; border-right: 4px solid #ef4444;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            line-height: 1.6;
+        }
+
+        .loader {
+            position: fixed; inset: 0; background: #0c0b0a; display: flex;
+            flex-direction: column; justify-content: center; align-items: center; z-index: 1000; color: white;
+            transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* לוח בקרה תחתון */
+        .control-panel {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            background: rgba(22, 21, 20, 0.88);
+            backdrop-filter: blur(15px);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            z-index: 100;
+            width: 320px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #f1f5f9;
+        }
+
+        .time-btn.active {
+            background-color: #ef4444;
+            color: white;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+        }
+        
+        .toggle-btn.active {
+            background-color: #3b82f6;
+            color: white;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+        }
+
+        /* אנימציות נשימה ורטט קלות */
+        @keyframes sway {
+            0%, 100% { transform: rotate(-3deg) translateY(0); }
+            50% { transform: rotate(-5deg) translateY(-2px); }
+        }
+        @keyframes shiver {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.002) translateY(0.5px); }
+        }
+        .sway-anim { animation: sway 8s ease-in-out infinite; }
+        .shiver-anim { animation: shiver 12s ease-in-out infinite; }
+
+        /* קולטים לטפטוף של הצינור */
+        .drip-effect {
+            position: absolute;
+            background: rgba(156, 163, 175, 0.8);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 25;
+            animation: dripFall 1.5s infinite linear;
+        }
+        @keyframes dripFall {
+            0% { transform: translateY(0); opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(400px); opacity: 0; }
+        }
+
+        /* ויזואלייזר קטן של גלי קול בקרה */
+        .visualizer-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 24px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .vis-bar {
+            flex: 1;
+            height: 2px;
+            background: #ef4444;
+            transition: height 0.15s ease;
+        }
+    </style>
+</head>
+<body>
+
+<div id="loader" class="loader">
+    <div class="mb-4 text-2xl tracking-[0.25em] font-light text-red-500">מרחב המעבר - הזכרון הנטוש</div>
+    <div id="progress" class="text-xs text-stone-500 mb-8 font-mono">משחזר את תדרי הלילה, הבטון והגשם...</div>
+    <button id="startBtn" disabled onclick="initApp()" class="border border-red-500/30 px-12 py-3 text-red-400 rounded-sm tracking-widest transition-all duration-500 hover:bg-red-500/10 hover:border-red-400 disabled:opacity-35 cursor-pointer">טוען...</button>
+</div>
+
+<div id="tooltip"></div>
+
+<div class="scene" id="scene">
+    <!-- טקסטורת קיר בטון חבוט וסדוק -->
+    <div class="concrete-wall-bg"></div>
+
+    <svg class="wall-crack" style="top: 10%; left: 5%; width: 200px; height: 150px;">
+        <path d="M10,10 L30,40 L25,80 L60,110 L100,120 M25,80 L5,95 L12,130" />
+    </svg>
+    <svg class="wall-crack" style="top: 40%; right: 10%; width: 150px; height: 100px;">
+        <path d="M10,90 L40,70 L55,30 L90,10 M40,70 L60,85" />
+    </svg>
+
+    <!-- מיכל הגשם הדינמי -->
+    <div class="rain-container" id="rain-layer"></div>
+
+    <!-- עמודי בטון מסיביים -->
+    <div id="bg-structure" class="absolute inset-0 pointer-events-none transition-transform duration-200">
+        <div class="absolute bottom-0 left-[8%] w-[120px] h-[85%] bg-stone-500 shadow-2xl border-l-4 border-stone-600"></div>
+        <div class="absolute bottom-0 left-[34%] w-[120px] h-[85%] bg-stone-500 shadow-2xl border-l-4 border-stone-600"></div>
+    </div>
+    
+    <!-- צינורות תשתית וחשמל מפותלים (Conduits) המגיעים מהתמונה המקורית -->
+    <div id="conduit-layer" class="absolute inset-0 pointer-events-none z-10">
+        <!-- צינור גמיש דק מעל המזרן -->
+        <svg class="absolute" style="left: 15%; top: 0; width: 120px; height: 350px; fill: none; stroke: #555; stroke-width: 4.5;">
+            <path d="M10,0 C20,100 5,200 45,310 L45,350" />
+            <path d="M8,0 C18,100 3,200 43,310 L43,350" stroke="#777" stroke-width="1.5" />
+        </svg>
+
+        <!-- צינור תשתית דק ליד קופסת כיבוי האש -->
+        <svg class="absolute" style="right: 22%; top: 0; width: 100px; height: 450px; fill: none; stroke: #444; stroke-width: 6;">
+            <path d="M10,0 L10,120 Q10,150 40,160 L60,160 Q80,165 80,190 L80,450" />
+            <path d="M8,0 L8,120 Q8,150 38,160 L58,160 Q78,165 78,190 L78,450" stroke="#888" stroke-width="2" />
+        </svg>
+    </div>
+
+    <!-- צינור ניקוז מפורט המטפטף בגשם -->
+    <div id="mid-structure" class="absolute inset-0 pointer-events-none transition-transform duration-200">
+        <svg class="interactive absolute top-0 left-[18%] w-[45px] h-[100%] pointer-events-auto" id="pipe" data-id="pipe" data-info="צִנּוֹר נִיקוּז חָלוּד וְרָטֹב הַמַּזְרִים אֶת מֵי הַגְּשָׁמִים. בִּזְמַן גֶּשֶׁם, נִתָּן לִרְאוֹת טִפּוֹת הַנִּקְווֹת מִבְּסִיסוֹ.">
+            <rect x="0" y="0" width="45" height="100%" fill="#475569" />
+            <rect x="0" y="0" width="45" height="100%" fill="url(#rustGradient)" />
+            <defs>
+                <linearGradient id="rustGradient" x1="0" x2="1">
+                    <stop offset="0%" stop-color="#78350f" stop-opacity="0.5"/>
+                    <stop offset="50%" stop-color="transparent"/>
+                    <stop offset="100%" stop-color="#451a03" stop-opacity="0.3"/>
+                </linearGradient>
+            </defs>
+        </svg>
+        <!-- נקודת טפטוף הצינור -->
+        <div id="pipe-drip-point" style="position: absolute; left: 19.5%; top: 60%;"></div>
+    </div>
+
+    <!-- קופסת כיבוי אש מפורטת עם מדבקות אינטסטלטור ומנעול מתכת -->
+    <svg class="interactive absolute top-[15%] right-[15%] w-[120px] h-[170px] shiver-anim" id="firebox" data-id="firebox" data-info="עֶמְדַּת כִּבּוּי אֵשׁ אֲדֻמָּה וַחֲלֻדָּה, שָׂרִיד לְבִטָּחוֹן שֶׁנִּשְׁכַּח. עָלֶיהָ מֻדְבָּק מִסְמָךְ וּמַדְבֵּקָה יְשָׁנָה שֶׁל מַעֲשֵׂי שְׁרַבְרָבוּת.">
+        <!-- גוף הקופסה החיצוני -->
+        <rect x="0" y="0" width="120" height="170" fill="#991b1b" stroke="#7f1d1d" stroke-width="5" rx="3"/>
+        <rect x="12" y="15" width="96" height="140" fill="#7f1d1d" opacity="0.4"/>
+        
+        <!-- מדבקת אינסטלטור צהובה ריאליסטית מהתמונה -->
+        <rect x="25" y="100" width="70" height="25" fill="#facc15" stroke="#ca8a04" stroke-width="1" rx="1" />
+        <text x="60" y="112" fill="#000" font-size="6.5" font-weight="bold" text-anchor="middle" font-family="sans-serif">האחים בן חמו</text>
+        <text x="60" y="120" fill="#000" font-size="5" text-anchor="middle" font-family="sans-serif">אינסטלטורים</text>
+
+        <!-- מנעול תלוי קטן -->
+        <rect x="98" y="70" width="10" height="12" fill="#a1a1aa" stroke="#71717a" />
+        <path d="M100,70 C100,64 106,64 106,70" fill="none" stroke="#71717a" stroke-width="2" />
+        
+        <!-- צירים וברגים -->
+        <circle cx="6" cy="30" r="3" fill="#444" />
+        <circle cx="6" cy="140" r="3" fill="#444" />
+    </svg>
+
+    <!-- מזרן משופר ועריסת קפיצים -->
+    <div id="fg-structure" class="absolute inset-0 pointer-events-none transition-transform duration-200">
+        <svg class="interactive absolute bottom-[12%] left-[20%] w-[380px] h-[170px] sway-anim pointer-events-auto" id="mattress" data-id="mattress" data-info="Mִזְרַן קְפִיצִים יָשָׁן, בָּלוּי וּמֻכְתָּם, הַמְּסַפֵּר סִפּוּר שֶׁל מַעֲבָר וּתְנוּעָה שֶׁנֶּעֶצְרָה בָּרְחוֹב הָעָמוּם.">
+            <rect x="0" y="0" width="380" height="170" rx="10" fill="#5b2114" stroke="#2d0f0a" stroke-width="3" />
+            <rect x="6" y="6" width="368" height="158" rx="6" fill="#78350f" opacity="0.8" />
+            <!-- דוגמת פסים בלויים -->
+            <path d="M40 0 L40 170 M100 0 L100 170 M160 0 L160 170 M220 0 L220 170 M280 0 L280 170 M340 0 L340 170" stroke="#451a03" stroke-width="2" opacity="0.6"/>
+            <!-- אזורים קרועים -->
+            <ellipse cx="140" cy="90" rx="18" ry="12" fill="#451a03" opacity="0.7"/>
+            <path d="M125 90 Q140 75 155 90" stroke="#333" stroke-width="2" />
+            <ellipse cx="280" cy="60" rx="14" ry="8" fill="#451a03" opacity="0.5"/>
+        </svg>
+
+        <!-- פסולת נוספת, קרטונים וכוסות מעוכות ברחבי הקרקע -->
+        <!-- קרטון קרוע גדול -->
+        <svg class="interactive absolute bottom-[8%] left-[55%] w-[90px] h-[45px] pointer-events-auto" id="trash-extra" data-id="trash-extra" data-info="פְּסֹלֶת נְיָר וְקַרְטוֹן זְרוּקִים עַל הָאֲדָמָה הַלַּחָה, שׁוֹקְעִים בְּאִטִּיּוּת בָּאֲבָק.">
+            <path d="M5,40 L85,35 L75,5 L15,10 Q5,20 5,40 Z" fill="#a16207" opacity="0.9"/>
+            <path d="M10,12 L65,15" stroke="#78350f" stroke-width="2" />
+            <rect x="15" y="20" width="50" height="15" fill="#854d0e" opacity="0.5"/>
+        </svg>
+        
+        <!-- פחית מעוכה -->
+        <svg class="interactive absolute bottom-[6%] left-[48%] w-[45px] h-[25px] pointer-events-auto" id="can-red" data-id="can" data-info="פַּחִית שְׁתִיָּה מְעוּכָה, שְׁאֵרִית לִזְמַן אַחֵר שֶׁחָלַף בַּמָּקוֹם.">
+            <path d="M0 12 L35 4 L45 15 L10 23 Z" fill="#b91c1c" stroke="#7f1d1d" stroke-width="2" />
+            <ellipse cx="10" cy="18" rx="8" ry="4" fill="#7f1d1d" />
+        </svg>
+
+        <!-- כוס פלסטיק מעוכה בצד שמאל -->
+        <svg class="interactive absolute bottom-[5%] left-[25%] w-[25px] h-[20px] pointer-events-auto" id="cup" data-id="cup" data-info="כּוֹס פְּלַסְטִיק שְׁקוּפָה וּמְעוּכָה, מְכוּסָה בְּאֵפֶר וּבְמַיִם עֲמוּמִים.">
+            <ellipse cx="12" cy="10" rx="10" ry="4" fill="rgba(240,240,250,0.3)" stroke="rgba(200,200,200,0.6)" stroke-width="1.5" />
+            <path d="M2,10 L5,18 L20,18 L22,10 Z" fill="rgba(240,240,250,0.15)" stroke="rgba(200,200,200,0.5)" stroke-width="1.2" />
+        </svg>
+
+        <!-- שקית פלסטיק כחולה קרועה מימין -->
+        <svg class="interactive absolute bottom-[4%] right-[25%] w-[35px] h-[25px] pointer-events-auto" id="plastic" data-id="plastic" data-info="שְׁרִידֵי שַׂקִּית פְּלַסְטִיק כְּחֻלָּה הַקְּרוּעָה וּמֻדְבֶּקֶת לַבֶּטוֹן הַלַּח.">
+            <path d="M2,18 Q15,2 32,12 Q20,25 15,15 Q5,24 2,18 Z" fill="#2563eb" opacity="0.6" stroke="#1d4ed8" stroke-width="1" />
+        </svg>
+    </div>
+
+    <div class="absolute bottom-0 w-full h-32 bg-gradient-to-t from-black to-transparent opacity-60 blur-md pointer-events-none"></div>
+</div>
+
+<!-- פאנל השליטה האינטראקטיבי -->
+<div class="control-panel">
+    <h1 class="text-lg font-semibold text-stone-100 tracking-tight">מרחב נטוש: מיצב דינמי</h1>
+    
+    <!-- בורר זמנים -->
+    <div class="flex gap-2 mb-3 bg-black/45 p-1 rounded-lg border border-white/5">
+        <button id="time-sunset" onclick="setTime('sunset')" class="time-btn flex-1 py-1.5 rounded text-center active font-medium text-xs transition">שקיעה</button>
+        <button id="time-night" onclick="setTime('night')" class="time-btn flex-1 py-1.5 rounded text-center font-medium text-xs transition">לילה</button>
+        <button id="time-dawn" onclick="setTime('dawn')" class="time-btn flex-1 py-1.5 rounded text-center font-medium text-xs transition">שחר</button>
+    </div>
+
+    <!-- כפתור גשם אינטראקטיבי -->
+    <div class="flex items-center justify-between bg-black/30 p-2.5 rounded-lg border border-white/5">
+        <span class="text-xs text-stone-300">אווירת גשם וטפטופים</span>
+        <button id="rainBtn" onclick="toggleRain()" class="toggle-btn px-4 py-1.5 rounded text-xs font-semibold bg-stone-700 hover:bg-stone-600 transition">כבוי</button>
+    </div>
+
+    <!-- ויזואלייזר תדרי שמע מגיב -->
+    <div class="visualizer-container" id="visualizer">
+        <!-- עמודי הויזואלייזר ייווצרו דינמית ב-JS -->
+    </div>
+</div>
+
+<script>
+    const apiKey = "";
+    let audioCtx;
+    const audioCache = {};
+    const tooltip = document.getElementById('tooltip');
+    const objects = document.querySelectorAll('.interactive');
+    const scene = document.getElementById('scene');
+    const rainLayer = document.getElementById('rain-layer');
+    const dripPoint = document.getElementById('pipe-drip-point');
+    const visualizer = document.getElementById('visualizer');
+
+    let isRaining = false;
+    let rainSoundNode;
+    let windFilterNode;
+    let rainInterval;
+    let dripInterval;
+
+    // בניית עמודי ויזואלייזר
+    for (let i = 0; i < 20; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'vis-bar';
+        visualizer.appendChild(bar);
+    }
+
+    // המרת PCM ל-WAV עבור ניגון בדפדפנים
+    function pcmToWav(pcmData, sampleRate) {
+        const buffer = new ArrayBuffer(44 + pcmData.length * 2);
+        const view = new DataView(buffer);
+        const writeString = (offset, string) => {
+            for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+        };
+        writeString(0, 'RIFF');
+        view.setUint32(4, 32 + pcmData.length * 2, true);
+        writeString(8, 'WAVE');
+        writeString(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeString(36, 'data');
+        view.setUint32(40, pcmData.length * 2, true);
+        let offset = 44;
+        for (let i = 0; i < pcmData.length; i++, offset += 2) {
+            view.setInt16(offset, pcmData[i], true);
+        }
+        return buffer;
+    }
+
+    // פנייה לשירות ה-TTS עם מנגנון הגנה וניסיונות חוזרים
+    async function fetchAudio(text, retries = 5, delay = 1000) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+        const payload = {
+            contents: [{ parts: [{ text: `Say in a poetic, slow, cinematic tone: ${text}` }] }],
+            generationConfig: {
+                responseModalities: ["AUDIO"],
+                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Charon" } } }
+            }
+        };
+
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const result = await response.json();
+                const audioPart = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                const audioData = audioPart?.inlineData?.data;
+                
+                if (audioData) return audioData;
+                else throw new Error("Empty audio data returned from API");
+            } catch (err) {
+                if (i === retries - 1) throw err;
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+            }
+        }
+    }
+
+    // טעינה מקבילה מראש לשיפור חווית המשתמש
+    async function preLoad() {
+        const progress = document.getElementById('progress');
+        const startBtn = document.getElementById('startBtn');
+        let count = 0;
+
+        const tasks = Array.from(objects).map(async (obj) => {
+            const id = obj.dataset.id;
+            const info = obj.dataset.info;
+            if (!id || !info) return;
+
+            try {
+                const audioDataB64 = await fetchAudio(info);
+                const binaryString = atob(audioDataB64);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+
+                const wavBuffer = pcmToWav(new Int16Array(bytes.buffer), 24000);
+                audioCache[id] = URL.createObjectURL(new Blob([wavBuffer], { type: 'audio/wav' }));
+                count++;
+                progress.innerText = `מכין תדרי זיכרון מנוקדים... (${count}/${objects.length})`;
+            } catch (e) {
+                console.error(`Failed to load audio for ${id}:`, e);
+            }
+        });
+
+        // פתיחת המיצב בצורה מהירה
+        startBtn.disabled = false;
+        startBtn.innerText = "היכנס למרחב";
+        startBtn.classList.remove('border-red-500/30', 'text-red-400');
+        startBtn.classList.add('border-red-500', 'text-white', 'bg-red-600');
+        
+        Promise.all(tasks).then(() => {
+            progress.innerText = "המרחב מסונכרן ומוכן לחלוטין.";
+        });
+    }
+
+    // אתחול מערכת השמע והמיצב
+    function initApp() {
+        document.getElementById('loader').style.opacity = '0';
+        setTimeout(() => document.getElementById('loader').remove(), 1200);
+        
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // יצירת סאונד רוח בבסיס המרחב
+        playAmbientWind();
+    }
+
+    // סינתיזה מלאה של רעש רוח משתנה
+    function playAmbientWind() {
+        if (!audioCtx) return;
+
+        const bufferSize = 4 * audioCtx.sampleRate;
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+
+        const whiteNoise = audioCtx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+        whiteNoise.loop = true;
+
+        windFilterNode = audioCtx.createBiquadFilter();
+        windFilterNode.type = 'bandpass';
+        windFilterNode.frequency.value = 130;
+        windFilterNode.Q.value = 3.5;
+
+        const windGain = audioCtx.createGain();
+        windGain.gain.value = 0.03;
+
+        whiteNoise.connect(windFilterNode);
+        windFilterNode.connect(windGain);
+        windGain.connect(audioCtx.destination);
+        whiteNoise.start();
+
+        // שינוי תדרים עצמאי של הרוח
+        setInterval(() => {
+            if (audioCtx && windFilterNode) {
+                const targetFreq = 100 + Math.random() * 90;
+                windFilterNode.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 2.5);
+            }
+        }, 3500);
+    }
+
+    // שליטה בגשם וטפטופים (סאונד + ויזואל)
+    function toggleRain() {
+        isRaining = !isRaining;
+        const btn = document.getElementById('rainBtn');
+        
+        if (isRaining) {
+            btn.classList.add('active');
+            btn.innerText = 'פעיל';
+            rainLayer.classList.add('active');
+            
+            // יצירת טיפות גשם נופלות על המסך
+            createRaindrops();
+            // הפעלת סאונד גשם סינתטי
+            startRainSound();
+            // הפעלת טפטוף מים מהצינור
+            startPipeDripping();
+        } else {
+            btn.classList.remove('active');
+            btn.innerText = 'כבוי';
+            rainLayer.classList.remove('active');
+            clearInterval(rainInterval);
+            clearInterval(dripInterval);
+            rainLayer.innerHTML = '';
+            stopRainSound();
+        }
+    }
+
+    function createRaindrops() {
+        rainInterval = setInterval(() => {
+            const drop = document.createElement('div');
+            drop.className = 'drop';
+            drop.style.left = Math.random() * 100 + 'vw';
+            drop.style.animationDuration = (0.5 + Math.random() * 0.5) + 's';
+            rainLayer.appendChild(drop);
+            
+            // הסרה אוטומטית של טיפות שעברו
+            setTimeout(() => drop.remove(), 1200);
+        }, 40);
+    }
+
+    // יצירת סאונד גשם ריאליסטי על ידי תדירות גבוהה של פעימות רעש לבן
+    function startRainSound() {
+        if (!audioCtx) return;
+
+        const bufferSize = 1 * audioCtx.sampleRate;
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+
+        rainSoundNode = audioCtx.createBufferSource();
+        rainSoundNode.buffer = noiseBuffer;
+        rainSoundNode.loop = true;
+
+        const rainFilter = audioCtx.createBiquadFilter();
+        rainFilter.type = 'highpass';
+        rainFilter.frequency.value = 1000;
+
+        const rainGain = audioCtx.createGain();
+        rainGain.gain.value = 0.015;
+
+        rainSoundNode.connect(rainFilter);
+        rainFilter.connect(rainGain);
+        gainNode = rainGain;
+        rainGain.connect(audioCtx.destination);
+        rainSoundNode.start();
+    }
+
+    function stopRainSound() {
+        if (rainSoundNode) {
+            try { rainSoundNode.stop(); } catch(e) {}
+        }
+    }
+
+    // סימולציית טפטוף מים מצינור הניקוז
+    function startPipeDripping() {
+        dripInterval = setInterval(() => {
+            const drip = document.createElement('div');
+            drip.className = 'drip-effect';
+            dripPoint.appendChild(drip);
+            
+            // השמעת קליק קצר של טיפת מים מנומכת
+            playClick(600 + Math.random() * 100, 0.02, 0.05);
+
+            setTimeout(() => drip.remove(), 1500);
+        }, 1800);
+    }
+
+    function playClick(freq, vol = 0.08, duration = 0.4) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+
+        animateVisualizer();
+    }
+
+    // הפעלת האנימציה של הויזואלייזר בכל צליל
+    function animateVisualizer() {
+        const bars = document.querySelectorAll('.vis-bar');
+        bars.forEach(bar => {
+            const height = Math.random() * 22 + 2;
+            bar.style.height = `${height}px`;
+            setTimeout(() => {
+                bar.style.height = '2px';
+            }, 300);
+        });
+    }
+
+    // שינוי זמני יום (שקיעה, לילה, שחר)
+    function setTime(mode) {
+        document.querySelectorAll('.time-selector button, .time-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`time-${mode}`).classList.add('active');
+
+        if (mode === 'sunset') {
+            scene.classList.remove('night-mode');
+            document.documentElement.style.setProperty('--sky-top', '#1a1817');
+            document.documentElement.style.setProperty('--sky-bottom', '#ffd2af');
+            document.documentElement.style.setProperty('--dirt-ground', '#3d2a1c');
+            if (windFilterNode) windFilterNode.frequency.setTargetAtTime(140, audioCtx.currentTime, 1.2);
+        } else if (mode === 'night') {
+            scene.classList.add('night-mode');
+            document.documentElement.style.setProperty('--sky-top', '#030305');
+            document.documentElement.style.setProperty('--sky-bottom', '#0b0a10');
+            document.documentElement.style.setProperty('--dirt-ground', '#14110f');
+            if (windFilterNode) windFilterNode.frequency.setTargetAtTime(85, audioCtx.currentTime, 1.2);
+        } else if (mode === 'dawn') {
+            scene.classList.remove('night-mode');
+            document.documentElement.style.setProperty('--sky-top', '#718096');
+            document.documentElement.style.setProperty('--sky-bottom', '#cbd5e0');
+            document.documentElement.style.setProperty('--dirt-ground', '#2d2a27');
+            if (windFilterNode) windFilterNode.frequency.setTargetAtTime(250, audioCtx.currentTime, 1.2);
+        }
+    }
+
+    // אלומת פנס מגיבה במצב לילה
+    function updateFlashlight(e) {
+        if (!scene.classList.contains('night-mode')) return;
+        const rect = scene.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        document.documentElement.style.setProperty('--flashlight-x', `${x}px`);
+        document.documentElement.style.setProperty('--flashlight-y', `${y}px`);
+    }
+
+    scene.addEventListener('mousemove', updateFlashlight);
+    scene.addEventListener('touchmove', (e) => {
+        if (e.touches[0]) updateFlashlight(e.touches[0]);
+    });
+
+    // אפקט פרלקס עמוק לתנועת עכבר
+    scene.addEventListener('mousemove', (e) => {
+        const x = (window.innerWidth / 2 - e.clientX) / 50;
+        const y = (window.innerHeight / 2 - e.clientY) / 50;
+
+        const bg = document.getElementById('bg-structure');
+        const mid = document.getElementById('mid-structure');
+        const fg = document.getElementById('fg-structure');
+
+        if (bg) bg.style.transform = `translate3d(${x * 0.4}px, ${y * 0.4}px, 0)`;
+        if (mid) mid.style.transform = `translate3d(${x * 0.9}px, ${y * 0.9}px, 0)`;
+        if (fg) fg.style.transform = `translate3d(${x * 1.5}px, ${y * 1.5}px, 0)`;
+    });
+
+    // חיבור המאזינים ללחיצה על חפצים
+    objects.forEach(obj => {
+        obj.addEventListener('mouseenter', e => {
+            tooltip.innerText = obj.dataset.info;
+            tooltip.style.display = 'block';
+        });
+        obj.addEventListener('mousemove', e => {
+            tooltip.style.left = (e.clientX + 20) + 'px';
+            tooltip.style.top = (e.clientY + 20) + 'px';
+        });
+        obj.addEventListener('mouseleave', () => tooltip.style.display = 'none');
+        
+        obj.addEventListener('click', () => {
+            // רטט לחיצה קל
+            obj.style.transform = 'scale(0.96) rotate(1deg)';
+            setTimeout(() => obj.style.transform = '', 200);
+
+            const id = obj.dataset.id;
+            
+            // צלילים פיזיקליים מותאמים
+            const freqs = { 'pipe': 65, 'firebox': 320, 'mattress': 95, 'trash-extra': 190, 'can': 450, 'cup': 550, 'plastic': 700 };
+            playClick(freqs[id] || 200);
+
+            // השמעת הקריינות הפואטית השמורה ב-Cache
+            const cachedSound = audioCache[id];
+            if (cachedSound) {
+                const audio = new Audio(cachedSound);
+                audio.volume = 1.0;
+                audio.play().catch(e => console.error("Playback error:", id, e));
+            }
+        });
+    });
+
+    window.onload = preLoad;
+</script>
+
+</body>
+</html>
