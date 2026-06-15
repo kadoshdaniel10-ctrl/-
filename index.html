@@ -96,13 +96,8 @@
         .interactive { cursor: pointer; transition: transform 0.3s ease, filter 0.3s ease; }
         .interactive:hover { filter: contrast(1.15) brightness(1.2); }
 
-        /* הגדרות כביסה רטובה */
+        /* הגדרות אפקט רטיבות */
         .wet-laundry {
-            filter: brightness(0.8) saturate(0.5) contrast(2) !important;
-            transform: translateY(30px) scale(0.95);
-        }
-
-        umbrella layer{
             filter: brightness(0.8) saturate(0.5) contrast(2) !important;
             transform: translateY(30px) scale(0.95);
         }
@@ -619,6 +614,7 @@
         isRaining = !isRaining;
         const btn = document.getElementById('rainBtn');
         const laundry = document.getElementById('clothesline');
+        const umbrella = document.getElementById('umbrella');
         
         if (isRaining) {
             if (btn) {
@@ -627,6 +623,7 @@
             }
             if (rainLayer) rainLayer.classList.add('active');
             if (laundry) laundry.classList.add('wet-laundry');
+            if (umbrella) umbrella.classList.add('wet-laundry');
             
             createRaindrops();
             startRainSound();
@@ -641,6 +638,7 @@
                 rainLayer.innerHTML = '';
             }
             if (laundry) laundry.classList.remove('wet-laundry');
+            if (umbrella) umbrella.classList.remove('wet-laundry');
             clearInterval(rainInterval);
             clearInterval(dripInterval);
             stopRainSound();
