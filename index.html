@@ -24,6 +24,7 @@
             user-select: none;
         }
         .scene { 
+            display:flex
             width: 100vw; 
             height: 100vh; 
             position: relative; 
@@ -123,17 +124,16 @@
         }
 
         .control-panel {
-            position: absolute;
-            bottom: 30px;
-            left: 30px;
-            background: rgba(22, 21, 20, 0.92);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(22, 21, 20, 0.9);
             backdrop-filter: blur(15px);
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            padding: 20px;
+            box-shadow: 0 -10px 25px rgba(0,0,0,0.4);
             z-index: 100;
-            width: 340px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
             color: #f1f5f9;
         }
 
@@ -201,9 +201,9 @@
             display: flex;
             align-items: flex-end;
             gap: 2px;
-            height: 24px;
+            height: 20px;
             width: 100%;
-            margin-top: 10px;
+            margin-top: 8px;
         }
         .vis-bar {
             flex: 1;
@@ -268,6 +268,11 @@
 
 <div id="tooltip"></div>
 
+.container {
+  display: flex; /* מסדר את ה-divs זה לצד זה או זה מתחת לזה */
+  flex-direction: row ;
+  gap: 10px; /* ריווח בין האלמנטים */
+}
 <div class="scene" id="scene">
     <div class="concrete-wall-bg" id="concrete-bg"></div>
 
@@ -480,28 +485,29 @@
 </div>
 
 <div class="control-panel">
-    <h1 class="text-lg font-semibold text-stone-100 tracking-tight">מרחב נטוש: מיצב דינמי</h1>
-    
-    <!-- בורר סצנות - עכשיו 3 כפתורים -->
-    <div class="flex gap-1.5 my-3 bg-stone-900/80 p-1 rounded-lg border border-white/5">
-        <button id="btn-scene1" onclick="switchScene(1)" class="flex-1 py-1 rounded text-center text-xs font-semibold text-stone-300 transition active bg-red-600 text-white">מזרן נטוש</button>
-        <button id="btn-scene2" onclick="switchScene(2)" class="flex-1 py-1 rounded text-center text-xs font-semibold text-stone-300 transition">מרחב כביסה</button>
-        <button id="btn-scene3" onclick="switchScene(3)" class="flex-1 py-1 rounded text-center text-xs font-semibold text-stone-300 transition">מרחב גג</button>
-    </div>
+    <div class="flex flex-wrap items-center justify-center gap-8">
+        
+        <!-- כפתורי סצנה -->
+        <div class="flex gap-3 bg-black/30 p-1.5 rounded-2xl border border-white/5">
+            <button id="btn-scene1" onclick="switchScene(1)" class="px-6 py-2 rounded-xl text-xs font-bold transition bg-red-600 text-white">מזרן</button>
+            <button id="btn-scene2" onclick="switchScene(2)" class="px-6 py-2 rounded-xl text-xs font-bold transition text-stone-300 hover:text-white">כביסה</button>
+            <button id="btn-scene3" onclick="switchScene(3)" class="px-6 py-2 rounded-xl text-xs font-bold transition text-stone-300 hover:text-white">גג</button>
+        </div>
 
-    <div class="flex gap-2 mb-3 bg-black/45 p-1 rounded-lg border border-white/5">
-        <button id="time-sunset" onclick="setTime('sunset')" class="time-btn flex-1 py-1.5 rounded text-center active font-medium text-xs transition">שקיעה</button>
-        <button id="time-night" onclick="setTime('night')" class="time-btn flex-1 py-1.5 rounded text-center font-medium text-xs transition">לילה</button>
-        <button id="time-dawn" onclick="setTime('dawn')" class="time-btn flex-1 py-1.5 rounded text-center font-medium text-xs transition">שחר</button>
-    </div>
+        <!-- כפתורי זמן -->
+        <div class="flex gap-3 bg-black/30 p-1.5 rounded-2xl border border-white/5">
+            <button id="time-sunset" onclick="setTime('sunset')" class="time-btn px-5 py-2 rounded-xl text-xs font-medium text-stone-300 transition">שקיעה</button>
+            <button id="time-night" onclick="setTime('night')" class="time-btn px-5 py-2 rounded-xl text-xs font-medium text-stone-300 transition">לילה</button>
+            <button id="time-dawn" onclick="setTime('dawn')" class="time-btn px-5 py-2 rounded-xl text-xs font-medium text-stone-300 transition">שחר</button>
+        </div>
 
-    <!-- גשם בכל הסצנות -->
-    <div id="rain-control" class="flex items-center justify-between bg-black/30 p-2.5 rounded-lg border border-white/5">
-        <span class="text-xs text-stone-300">אווירת גשם וטפטופים</span>
-        <button id="rainBtn" onclick="toggleRain()" class="toggle-btn px-4 py-1.5 rounded text-xs font-semibold bg-stone-700 hover:bg-stone-600 transition">כבוי</button>
-    </div>
+        <!-- גשם וויזואליזציה -->
+        <div class="flex items-center gap-6">
+            <button id="rainBtn" onclick="toggleRain()" class="px-6 py-2 rounded-xl text-xs font-bold bg-stone-800 text-stone-300 hover:bg-stone-700 transition border border-white/5">גשם: כבוי</button>
+            <div class="visualizer-container" id="visualizer"></div>
+        </div>
 
-    <div class="visualizer-container" id="visualizer"></div>
+    </div>
 </div>
 
 <script>
@@ -523,10 +529,8 @@
     let rainInterval;
     let dripInterval;
 
-    // Collect all clickable objects (scenes 1+2 use .interactive, scene 3 uses .roof-obj)
     const allObjects = () => document.querySelectorAll('.interactive, .roof-obj, .corrugated-roof');
 
-    // Visualizer bars
     if (visualizer) {
         for (let i = 0; i < 20; i++) {
             const bar = document.createElement('div');
@@ -564,10 +568,9 @@
     async function fetchAudio(text, retries = 5) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
         const payload = {
-            contents: [{ parts: [{ text: `קרא בקול עמוק, איטי, דרמטי ופואטי, בהקפדה על הניקוד: ${text}` }] }],
-            generationConfig: {
+           contents: [{ parts: [{ text: `קרא בקול נשי, עמוק, איטי, דרמטי ופואטי, בהקפדה על הניקוד: ${text}` }] }],            generationConfig: {
                 responseModalities: ["AUDIO"],
-                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Charon" } } }
+                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } } }
             },
             model: "gemini-2.5-flash-preview-tts"
         };
@@ -614,7 +617,7 @@
                 const wavBuffer = pcmToWav(new Int16Array(bytes.buffer), sampleRate);
                 audioCache[id] = URL.createObjectURL(new Blob([wavBuffer], { type: 'audio/wav' }));
                 count++;
-                if (progress) progress.innerText = `מכין תדרי זיכרון מנוקדים... (${count}/${objs.length})`;
+                if (progress) progress.innerText = `מכין תדרי זיכרון... (${count}/${objs.length})`;
             } catch (e) {
                 setupWebSpeechFallback(id, info);
             }
@@ -628,9 +631,9 @@
         }
 
         Promise.all(tasks).then(() => {
-            if (progress) progress.innerText = "המרחב מסונכרן ומוכן לחלוטין.";
+            if (progress) progress.innerText = "המרחב מוכן.";
         }).catch(() => {
-            if (progress) progress.innerText = "המרחב מוכן עם תצורות שמע חלקיות.";
+            if (progress) progress.innerText = "המרחב מוכן.";
         });
     }
 
@@ -721,9 +724,7 @@
         const crack2 = document.getElementById('crack2');
         const bottomFade = document.getElementById('bottom-fade');
 
-        // Hide all scenes
         [s1, s2, s3].forEach(s => s && s.classList.add('hidden'));
-        // Reset buttons
         [b1, b2, b3].forEach(b => {
             if (b) { b.classList.remove('bg-red-600', 'text-white', 'bg-sky-600'); b.classList.add('text-stone-300'); }
         });
@@ -752,17 +753,14 @@
             s3 && s3.classList.remove('hidden');
             b3 && b3.classList.add('bg-sky-600', 'text-white');
             b3 && b3.classList.remove('text-stone-300');
-            // Roof scene: open sky background
             document.documentElement.style.setProperty('--sky-top', '#8b9bb0');
             document.documentElement.style.setProperty('--sky-bottom', '#d2dae5');
             document.documentElement.style.setProperty('--dirt-ground', '#44403c');
             scene.classList.add('roof-scene');
-            // Hide concrete elements that don't belong on a rooftop
             if (concreteBg) concreteBg.style.display = 'none';
             if (crack1) crack1.style.display = 'none';
             if (crack2) crack2.style.display = 'none';
             if (bottomFade) bottomFade.style.display = 'none';
-            // Init roof-specific audio
             initRoofAudio();
         }
     }
@@ -774,7 +772,7 @@
         const umbrella = document.getElementById('umbrella');
         
         if (isRaining) {
-            if (btn) { btn.classList.add('active'); btn.innerText = 'פעיל'; }
+            if (btn) { btn.classList.add('active'); btn.innerText = 'גשם: דלוק'; }
             if (rainLayer) rainLayer.classList.add('active');
             if (laundry) laundry.classList.add('wet-laundry');
             if (umbrella) umbrella.classList.add('wet-laundry');
@@ -875,43 +873,28 @@
             if (currentScene === 3) {
                 document.documentElement.style.setProperty('--sky-top', '#8b9bb0');
                 document.documentElement.style.setProperty('--sky-bottom', '#ffd2af');
-                document.documentElement.style.setProperty('--roof-color', '#9c9991');
-                document.documentElement.style.setProperty('--roof-shadow', '#5c5952');
             } else {
                 document.documentElement.style.setProperty('--sky-top', '#1a1817');
                 document.documentElement.style.setProperty('--sky-bottom', currentScene === 1 ? '#2d2a27' : '#3e352f');
-                document.documentElement.style.setProperty('--dirt-ground', '#3d2a1c');
             }
-            if (windFilterNode) windFilterNode.frequency.setTargetAtTime(140, audioCtx.currentTime, 1.2);
-            if (roofBiquadFilter) roofBiquadFilter.frequency.setTargetAtTime(140, audioCtx.currentTime, 1);
         } else if (mode === 'night') {
             scene.classList.add('night-mode');
             if (currentScene === 3) {
                 document.documentElement.style.setProperty('--sky-top', '#05070c');
                 document.documentElement.style.setProperty('--sky-bottom', '#0e111a');
-                document.documentElement.style.setProperty('--roof-color', '#2d2c2e');
-                document.documentElement.style.setProperty('--roof-shadow', '#131214');
             } else {
                 document.documentElement.style.setProperty('--sky-top', '#030305');
                 document.documentElement.style.setProperty('--sky-bottom', '#0b0a10');
-                document.documentElement.style.setProperty('--dirt-ground', '#14110f');
             }
-            if (windFilterNode) windFilterNode.frequency.setTargetAtTime(85, audioCtx.currentTime, 1.2);
-            if (roofBiquadFilter) roofBiquadFilter.frequency.setTargetAtTime(80, audioCtx.currentTime, 1);
         } else if (mode === 'dawn') {
             scene.classList.remove('night-mode');
             if (currentScene === 3) {
                 document.documentElement.style.setProperty('--sky-top', '#6a788c');
                 document.documentElement.style.setProperty('--sky-bottom', '#b1bdcd');
-                document.documentElement.style.setProperty('--roof-color', '#7d7a75');
-                document.documentElement.style.setProperty('--roof-shadow', '#44423f');
             } else {
                 document.documentElement.style.setProperty('--sky-top', '#718096');
                 document.documentElement.style.setProperty('--sky-bottom', '#cbd5e0');
-                document.documentElement.style.setProperty('--dirt-ground', '#2d2a27');
             }
-            if (windFilterNode) windFilterNode.frequency.setTargetAtTime(250, audioCtx.currentTime, 1.2);
-            if (roofBiquadFilter) roofBiquadFilter.frequency.setTargetAtTime(220, audioCtx.currentTime, 1);
         }
     }
 
@@ -929,44 +912,12 @@
         scene.addEventListener('touchmove', (e) => {
             if (e.touches[0]) updateFlashlight(e.touches[0]);
         });
-
-        scene.addEventListener('mousemove', (e) => {
-            const x = (window.innerWidth / 2 - e.clientX) / 55;
-            const y = (window.innerHeight / 2 - e.clientY) / 55;
-
-            // Scene 1 + 2 parallax
-            const bg1 = document.getElementById('scene1-bg');
-            const bg2 = document.getElementById('scene2-bg');
-            const rack = document.getElementById('laundry-rack-layer');
-            const line = document.getElementById('clothesline-layer');
-            const umb = document.getElementById('umbrella-layer');
-            const bkt = document.getElementById('bucket-layer');
-            const ply = document.getElementById('plywood-layer');
-
-            if (bg1) bg1.style.transform = `translate3d(${x * 0.4}px, ${y * 0.4}px, 0)`;
-            if (bg2) bg2.style.transform = `translate3d(${x * 0.4}px, ${y * 0.4}px, 0)`;
-            if (rack) rack.style.transform = `translate3d(${x * 1.3}px, ${y * 1.3}px, 0)`;
-            if (line) line.style.transform = `translate3d(${x * 0.9}px, ${y * 0.9}px, 0)`;
-            if (umb) umb.style.transform = `translate3d(${x * 1.1}px, ${y * 1.1}px, 0)`;
-            if (bkt) bkt.style.transform = `translate3d(${x * 0.8}px, ${y * 0.8}px, 0)`;
-            if (ply) ply.style.transform = `translate3d(${x * 1.4}px, ${y * 1.2}px, 0)`;
-
-            // Scene 3 parallax
-            if (currentScene === 3) {
-                const door = document.getElementById('door');
-                const roof = document.getElementById('roof');
-                if (door) door.style.transform = `translate3d(${x * 0.9}px, ${y * 0.4}px, 0)`;
-                if (roof) roof.style.transform = `translate3d(${x * 0.2}px, ${y * 0.1}px, 0)`;
-            }
-        });
     }
 
     function bindObjectEvents() {
         allObjects().forEach(obj => {
-            // Prevent double-binding
             if (obj._bound) return;
             obj._bound = true;
-
             obj.addEventListener('mouseenter', () => {
                 if (tooltip) {
                     tooltip.innerText = obj.dataset.info || '';
@@ -982,49 +933,14 @@
             obj.addEventListener('mouseleave', () => {
                 if (tooltip) tooltip.style.display = 'none';
             });
-
             obj.addEventListener('click', () => {
                 const id = obj.dataset.id;
-
-                // Roof resonance toggle
-                if (id === 'roof') {
-                    roofResonance = !roofResonance;
-                    if (roofBiquadFilter) {
-                        roofBiquadFilter.frequency.setTargetAtTime(
-                            roofResonance ? 950 : 140, audioCtx.currentTime, 0.4
-                        );
-                    }
-                    obj.style.filter = 'brightness(1.4)';
-                    setTimeout(() => { obj.style.filter = ''; }, 300);
-                } else {
-                    obj.style.transform = 'scale(0.96) rotate(1deg)';
-                    setTimeout(() => { obj.style.transform = ''; }, 200);
-                }
-
-                const freqs = {
-                    'pipe': 65, 'firebox': 320, 'mattress': 95, 'trash-extra': 190,
-                    'can': 450, 'cup': 550, 'plastic': 700, 'rack': 180,
-                    'umbrella': 240, 'bucket': 380, 'clothesline': 110,
-                    'concrete-cover': 75, 'plywood': 130,
-                    'door': 210, 'cables': 80, 'grate': 520, 'windshield': 160, 'roof': 65
-                };
+                const freqs = { 'pipe': 65, 'firebox': 320, 'mattress': 95, 'trash-extra': 190, 'can': 450, 'cup': 550, 'plastic': 700, 'rack': 180, 'umbrella': 240, 'bucket': 380, 'clothesline': 110, 'concrete-cover': 75, 'plywood': 130, 'door': 210, 'cables': 80, 'grate': 520, 'windshield': 160, 'roof': 65 };
                 playClick(freqs[id] || 200);
-
-                // Roof click flash
-                if (id === 'door' || id === 'cables' || id === 'grate' || id === 'windshield' || id === 'roof') {
-                    obj.style.filter = 'brightness(2) drop-shadow(0 0 25px #0284c7)';
-                    setTimeout(() => { obj.style.filter = ''; }, 300);
-                }
-
                 const cachedSound = audioCache[id];
                 if (cachedSound) {
-                    if (typeof cachedSound === 'function') {
-                        cachedSound();
-                    } else {
-                        const audio = new Audio(cachedSound);
-                        audio.volume = 1.0;
-                        audio.play().catch(() => {});
-                    }
+                    if (typeof cachedSound === 'function') cachedSound();
+                    else { const audio = new Audio(cachedSound); audio.play().catch(() => {}); }
                 }
             });
         });
